@@ -315,8 +315,8 @@ class SPED_EFD_Info:
 			if campo.nome in type(self).colunas_selecionadas:
 				info_de_abertura[nivel][combinacao][campo.nome] = valor	
 			if campo.nome == 'DT_INI':
-					ddmmaaaa = registro.valores[campo.indice]
-					info_de_abertura[nivel][combinacao]['Data de Emissão'] = valor
+					ddmmaaaa = valor
+					info_de_abertura[nivel][combinacao]['Data de Emissão'] = ddmmaaaa
 					info_de_abertura[nivel][combinacao]['Mês do Período de Apuração'] = ddmmaaaa[2:4]
 					info_de_abertura[nivel][combinacao]['Ano do Período de Apuração'] = ddmmaaaa[4:8]
 			if campo.nome == 'DT_FIN':

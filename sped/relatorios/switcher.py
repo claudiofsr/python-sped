@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '01 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '06 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, re
-from datetime import datetime
+from datetime import datetime # https://strftime.org/
 from sped.relatorios.efd_tabelas import EFD_Tabelas
 from sped.campos import (CampoData, CampoCNPJ, CampoCPF, CampoNCM,
                         CampoCPFouCNPJ, CampoChaveEletronica)
+
+import locale
+locale.setlocale(locale.LC_TIME, 'pt_BR.utf8') # 'pt_BR.utf8', 'pt_BR.UTF-8'
+# print(datetime.now().strftime('%A %d de %B de %Y, %H:%M:%S')) 
 
 # Versão mínima exigida: python 3.6.0
 python_version = sys.version_info
@@ -33,14 +37,21 @@ class My_Switch:
 	@staticmethod
 	def formatar_linhas(numero):
 		return f'{int(numero):09d}'
-
+	
 	@staticmethod
-	def formatar_mes(mes_num):
+	def formatar_mes_usando_tabelas(mes_num):
 		try:
 			mes_num = f'{int(mes_num):02d}'
 			return f'{EFD_Tabelas.tabela_mes_nominal[mes_num]}'
 		except:
 			return mes_num
+	
+	@staticmethod
+	def formatar_mes_usando_locale(mes_num):
+		# https://xlsxwriter.readthedocs.io/working_with_dates_and_time.html
+		dt = datetime.strptime(mes_num, "%m") # "%d%m%Y": ddmmaaaa
+		month_name = dt.strftime("%B")        # %B:dezembro' ; %b:'dez'
+		return month_name
 	
 	@staticmethod
 	def formatar_registro(registro):
@@ -144,7 +155,7 @@ class My_Switch:
 			# bool(match_linha) retorna True ou False.
 			switcher = {
 				bool(match_linha):      self.formatar_linhas,
-				bool(match_mes):        self.formatar_mes,
+				bool(match_mes):        self.formatar_mes_usando_tabelas,
 				bool(match_reg):        self.formatar_registro,
 				bool(match_cfop):       self.formatar_cfop,
 				bool(match_nbc):        self.formatar_nbc,

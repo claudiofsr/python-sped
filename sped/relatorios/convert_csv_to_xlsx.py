@@ -80,6 +80,10 @@ class CSV_to_Excel:
 					
 					column_name = SPED_EFD_Info.colunas_selecionadas[column_index]
 
+					if column_name == 'Linhas':
+						worksheet.write(num_linha, column_index, row_index + 2, myFormat[column_name])
+						continue
+
 					if len(cell) > 0:
 						worksheet.write(num_linha, column_index, myValue[column_name](cell), myFormat[column_name])
 					else:

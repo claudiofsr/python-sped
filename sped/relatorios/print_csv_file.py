@@ -28,7 +28,7 @@ class SPED_EFD_Info:
 	# class or static variable
 	
 	# Python 3 Deep Dive (Part 4 - OOP)/03. Project 1/03. Project Solution - Transaction Numbers
-	contador_de_linhas = itertools.count(2) # 2 é o valor inicial do contador
+	contador_de_linhas = itertools.count(1) # 1 é o valor inicial do contador
 	
 	### --- registros e colunas --- ###
 	

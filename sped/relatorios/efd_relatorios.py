@@ -203,9 +203,6 @@ def main():
 	with open(final_file_csv, mode='w', newline='', encoding='utf-8', errors='ignore') as csv_unificado:
 
 		writer = csv.writer(csv_unificado, delimiter=';')
-			
-		# imprimir os nomes das colunas apenas uma vez na primeira linha 
-		writer.writerow(SPED_EFD_Info.colunas_selecionadas)
 
 		# https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files
 		for num, csv_file_path in new_dict.items():

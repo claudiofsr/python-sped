@@ -425,7 +425,7 @@ class SPED_EFD_Info:
 
 			writer = csv.writer(csvfile, delimiter=';')
 
-			# Os nomes das colunas serão impressos posteriormente em efd_relatorios.py 
+			# Os nomes das colunas serão impressos posteriormente em convert_csv_to_xlsx.py 
 			# writer.writerow(type(self).colunas_selecionadas)
 			
 			for key in sped_efd._blocos.keys():

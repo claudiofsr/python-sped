@@ -3,7 +3,7 @@
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 Data  = '01 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
-import sys, csv
+import sys, csv, itertools
 import xlsxwriter # pip install xlsxwriter
 from sped.relatorios.switcher import My_Switch
 from sped.relatorios.print_csv_file import SPED_EFD_Info
@@ -31,16 +31,9 @@ class CSV_to_Excel:
 	@property
 	def convert_csv_to_xlsx(self):
 
-		# Create an new Excel file and add a worksheet.
+		# Create an new Excel file.
 		workbook = xlsxwriter.Workbook(self.output_excel)
-		worksheet = workbook.add_worksheet('Itens de Docs Fiscais')
 		workbook.set_properties({'comments': 'Created with Python and XlsxWriter'})
-		
-		# definindo a altura da primeira coluna, row_index == 0
-		worksheet.set_row(0, 30)
-
-		# Freeze pane on the top row.
-		worksheet.freeze_panes(1, 0)
 
 		# Set up some formatting
 		header_format = workbook.add_format({
@@ -56,18 +49,28 @@ class CSV_to_Excel:
 		select_format.formatar_colunas_do_arquivo_excel(workbook)
 		myFormat = select_format.dicionario
 
-		# First we find the length of the header column 
+		# First we find the length of the header column
 		largura_max = [len(c) for c in SPED_EFD_Info.colunas_selecionadas]
-        
-		with open(self.imput_csv, 'r', encoding='utf-8', errors='ignore') as file:
-        
-			reader = csv.reader(file, delimiter=';')
-			for row_index, row in enumerate(reader):
 
-				# nomes das colunas
-				if row_index == 0:
-					worksheet.write_row(row_index, 0, tuple(SPED_EFD_Info.colunas_selecionadas), header_format)
-					continue
+		split_number = 1000000 # limitar o número de linhas em cada aba (worksheet)
+        
+		with open(self.imput_csv, 'r', encoding='utf-8', errors='ignore') as excel_file:
+        
+			reader = csv.reader(excel_file, delimiter=';')
+
+			for row_index, row in enumerate(reader,0):
+
+				num_aba   = row_index // split_number + 1 # parte inteira da divisão
+				num_linha = row_index  % split_number + 1 # módulo da divisão ou resto
+
+				if num_linha == 1:
+
+					num = f'{num_aba:02d}' if num_aba > 1 else ''
+					
+					worksheet = workbook.add_worksheet('Itens de Docs Fiscais ' + str(num))			
+
+					# imprimir os nomes das colunas em (0,0)
+					worksheet.write_row(0, 0, tuple(SPED_EFD_Info.colunas_selecionadas), header_format)
 
 				for column_index, cell in enumerate(row):
 
@@ -78,19 +81,27 @@ class CSV_to_Excel:
 					column_name = SPED_EFD_Info.colunas_selecionadas[column_index]
 
 					if len(cell) > 0:
-						worksheet.write(row_index, column_index, myValue[column_name](cell), myFormat[column_name])
+						worksheet.write(num_linha, column_index, myValue[column_name](cell), myFormat[column_name])
 					else:
 						# Write cell with row/column notation.
-						worksheet.write(row_index, column_index, cell)
+						worksheet.write(num_linha, column_index, cell)
 		
-		# Ajustar largura das colunas com os valores máximos
-		largura_min = 4
-		for i, width in enumerate(largura_max):
-			if width > 120: # largura máxima
-				width = 120
-			worksheet.set_column(i, i, width + largura_min)
-		
-		# Set the autofilter( $first_row, $first_col, $last_row, $last_col )
-		worksheet.autofilter(0, 0, 0, len(largura_max) - 1)
+		for worksheet in workbook.worksheets():
+
+			# definindo a altura da primeira linha, row_index == 0
+			worksheet.set_row(0, 30)
+
+			# Freeze pane on the top row.
+			worksheet.freeze_panes(1, 0)
+
+			# Ajustar largura das colunas com os valores máximos
+			largura_min = 4
+			for i, width in enumerate(largura_max):
+				if width > 120: # largura máxima
+					width = 120
+				worksheet.set_column(i, i, width + largura_min)
+			
+			# Set the autofilter( $first_row, $first_col, $last_row, $last_col )
+			worksheet.autofilter(0, 0, 0, len(largura_max) - 1)
 
 		workbook.close()

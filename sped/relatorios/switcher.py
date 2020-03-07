@@ -218,6 +218,7 @@ class My_Switch:
 			match_data     = re.search(r'Data|DT_', nome_da_coluna, flags=re.IGNORECASE)
 			match_center   = re.search(r'Período|Operação', nome_da_coluna, flags=re.IGNORECASE)
 
+			# Estes vários testes de condições/switcher são executados apenas uma vez na execução do método/função.
 			switcher = {
 				bool(match_n_center):  format_n_center,
 				bool(match_n_right):   format_n_right,

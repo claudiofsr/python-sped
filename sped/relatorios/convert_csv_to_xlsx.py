@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '01 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '07 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, csv, itertools
 import xlsxwriter # pip install xlsxwriter
@@ -49,10 +49,10 @@ class CSV_to_Excel:
 		select_format.formatar_colunas_do_arquivo_excel(workbook)
 		myFormat = select_format.dicionario
 
-		# First we find the length of the header column
+		# First, we find the length of the name of each column
 		largura_max = [len(c) for c in SPED_EFD_Info.colunas_selecionadas]
 
-		split_number = 1000000 # limitar o número de linhas em cada aba (worksheet)
+		split_number = 500_000 # limitar o número de linhas em cada aba (worksheet)
         
 		with open(self.imput_csv, 'r', encoding='utf-8', errors='ignore') as excel_file:
         
@@ -65,9 +65,9 @@ class CSV_to_Excel:
 
 				if num_linha == 1:
 
-					num = f'{num_aba:02d}' if num_aba > 1 else ''
+					num = f' {num_aba:02d}' if num_aba > 1 else ''
 					
-					worksheet = workbook.add_worksheet('Itens de Docs Fiscais ' + str(num))			
+					worksheet = workbook.add_worksheet('Itens de Docs Fiscais' + str(num))		
 
 					# imprimir os nomes das colunas em (0,0)
 					worksheet.write_row(0, 0, tuple(SPED_EFD_Info.colunas_selecionadas), header_format)
@@ -80,7 +80,7 @@ class CSV_to_Excel:
 					
 					column_name = SPED_EFD_Info.colunas_selecionadas[column_index]
 
-					if column_name == 'Linhas':
+					if column_name == 'Linhas': # refazer a contagem do número de linhas
 						worksheet.write(num_linha, column_index, row_index + 2, myFormat[column_name])
 						continue
 
@@ -90,6 +90,7 @@ class CSV_to_Excel:
 						# Write cell with row/column notation.
 						worksheet.write(num_linha, column_index, cell)
 		
+		# configurações finais de cada aba
 		for worksheet in workbook.worksheets():
 
 			# definindo a altura da primeira linha, row_index == 0

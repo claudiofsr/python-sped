@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '07 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '08 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, csv, itertools
 import xlsxwriter # pip install xlsxwriter
@@ -33,7 +33,17 @@ class CSV_to_Excel:
 
 		# Create an new Excel file.
 		workbook = xlsxwriter.Workbook(self.output_excel)
-		workbook.set_properties({'comments': 'Created with Python and XlsxWriter'})
+
+		workbook.set_properties({
+			'title':    str(self.output_excel)[:-5],
+			'subject':  'Informações obtidas de arquivos SPED (http://sped.rfb.gov.br)',
+			'author':   '',
+			'manager':  '',
+			'company':  '',
+			'category': '',
+			'keywords': 'SPED (Sistema Público de Escrituração Digital), EFD Contribuições, EFD ICMS_IPI',
+			'comments': 'Created with XlsxWriter and Python Sped',
+		})
 
 		# Set up some formatting
 		header_format = workbook.add_format({

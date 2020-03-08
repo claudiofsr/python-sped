@@ -532,7 +532,7 @@ class SPED_EFD_Info:
 						
 						# reter em info{} as informações dos registros contidos em registros_totais
 						info[nivel][combinacao][campo.nome] = valor
-
+						
 						if campo.nome in type(self).registros_de_valor_do_item:
 							info[nivel][combinacao]['Valor do Item'] = valor
 						if campo.nome in type(self).registros_de_data_emissao  and len(valor) == 8:
@@ -544,7 +544,7 @@ class SPED_EFD_Info:
 						# Informar nomes dos estabelecimentos de cada CNPJ
 						if campo.nome == 'CNPJ' and valor in self.info_dos_estabelecimentos:
 							info[nivel][combinacao]['NOME'] = self.info_dos_estabelecimentos[valor]
-
+					
 					if self.verbose:
 						print(f'\n-->info[nivel][combinacao] = info[{nivel}][{combinacao}] = {info[nivel][combinacao]}\n')
 					

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '05 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '08 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import os, re, sys, itertools, csv
 from time import time, sleep
@@ -407,17 +407,43 @@ class SPED_EFD_Info:
 		
 		return dict_info
 	
+	def gerar_dict_de_combinacao(self, registro):
+
+		"""
+		obter informações para definição da chave de combinação
+		"""
+
+		registros_de_combinacao = [
+			'CST_PIS', 'CST_COFINS', 'CST_ICMS', 'CFOP',
+			'VL_BC_PIS', 'VL_BC_COFINS', 'VL_BC_ICMS'
+		]
+
+		# definir valores iniciais: comb[campo] = ''
+		comb = {campo: '' for campo in registros_de_combinacao}
+
+		for campo in registro.campos:
+			if campo.nome in registros_de_combinacao:
+				comb[campo.nome] = registro.valores[campo.indice]
+		
+		# Fazer pareamento de registros com informações dependentes.
+		# No registro C191/D101/... há informações de PIS/PASEP
+		# No registro C195/D105/... há informações de COFINS
+		# Fazer pareamento dos registros C191 com C195, D101 com D105, ...
+		# Adicionar ao dict comb dois campos: 'cst_contrib' e 'bc_contrib'.
+		comb['cst_contrib'] = max(comb['CST_PIS'], comb['CST_COFINS'])
+		comb['bc_contrib']  = max(comb['VL_BC_PIS'], comb['VL_BC_COFINS'])
+
+		return comb
+	
 	def info_dos_blocos(self,sped_efd,output_filename):
 		
 		my_regex = r'^[A-K]' # Ler os blocos da A a K.
 		
 		if self.efd_tipo == 'efd_contribuicoes':
-			registros_de_base_calculo = ['VL_BC_PIS', 'VL_BC_COFINS']
 			campos_necessarios = ['CST_PIS', 'CST_COFINS', 'VL_BC_PIS', 'VL_BC_COFINS']
 			# Bastariam os seguintes campos, desde que os registros de PIS/PASEP ocorressem sempre anteriores 
 			# aos registros de COFINS: campos_necessarios = ['CST_COFINS', 'VL_BC_COFINS']
 		elif self.efd_tipo == 'efd_icms_ipi':
-			registros_de_base_calculo = ['VL_BC_ICMS']
 			campos_necessarios = ['CST_ICMS', 'VL_BC_ICMS']
 		
 		# https://docs.python.org/3/library/csv.html
@@ -453,34 +479,18 @@ class SPED_EFD_Info:
 					nivel = registro.nivel # nível atual
 					num_de_campos = len(registro.campos)
 
-					cst_pis = ''      # 2 caracteres
-					cst_cofins = ''   # 2 caracteres
-					cst_icms = ''     # 3 caracteres
-					cfop = 'cfop'     # 4 caracteres
-					valor_bc = 'valor_bc'
-					
-					for campo in registro.campos:
-						if campo.nome == 'CST_PIS': 
-							cst_pis = registro.valores[campo.indice]
-						if campo.nome == 'CST_COFINS': 
-							cst_cofins = registro.valores[campo.indice]
-						if campo.nome == 'CST_ICMS': 
-							cst_icms = registro.valores[campo.indice]
-						if campo.nome == 'CFOP': 
-							cfop = registro.valores[campo.indice]
-						if campo.nome in registros_de_base_calculo:
-							valor_bc = registro.valores[campo.indice]
-					
-					cst_contribuicao = max(cst_pis,cst_cofins)
+					# gerar dicionário cujas chaves geram uma combinação 
+					comb = self.gerar_dict_de_combinacao(registro)
 
 					# Utilizar uma combinação de valores para identificar univocamente um item.
 					# O pareamento entre itens de PIS e COFINS ocorre dinamicamente, linha a linha.
-					combinacao = f'{cst_contribuicao}_{cst_icms}_{cfop}_{valor_bc}'
+					combinacao = f"{comb['cst_contrib']}_{comb['CST_ICMS']}_{comb['CFOP']}_{comb['bc_contrib']}_{comb['VL_BC_ICMS']}"
 					
 					if self.verbose:
 						print(f'\ncount = {count:>2} ; key = {key} ; REG = {REG} ; nivel_anterior = {nivel_anterior} ; nivel = {nivel} ; ', end='')
-						print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ; ', end='')
-						print(f'cst_pis = {cst_pis} ; cst_cofins = {cst_cofins} ; cst_contribuicao = {cst_contribuicao}')
+						print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ; ')
+						print(f"CST_PIS = {comb['CST_PIS']} ; CST_COFINS = {comb['CST_COFINS']} ; cst_contrib = {comb['cst_contrib']} ; ", end='')
+						print(f"VL_BC_PIS = {comb['VL_BC_PIS']} ; VL_BC_COFINS = {comb['VL_BC_COFINS']} ; bc_contrib = {comb['bc_contrib']}")
 						print(f'registro.as_line() = {registro.as_line()}')
 
 					# As informações do pai e respectivos filhos devem ser apagadas quando 
@@ -504,7 +514,7 @@ class SPED_EFD_Info:
 					
 					# https://www.geeksforgeeks.org/python-creating-multidimensional-dictionary/
 					info.setdefault(nivel, {}).setdefault(combinacao, {})['Nível Hierárquico'] = nivel
-					info[nivel][combinacao]['CST_PIS_COFINS'] = cst_contribuicao
+					info[nivel][combinacao]['CST_PIS_COFINS'] = comb['cst_contrib']
 					
 					for campo in registro.campos:
 						
@@ -555,7 +565,7 @@ class SPED_EFD_Info:
 								flattened_info[coluna] = info[nivel][combinacao][coluna] # eliminar os dois niveis [nivel][combinacao]
 								seen_column.add(coluna)
 								if self.verbose:
-									print(f'nivel = {nivel:<10} ; combinacao = {combinacao:25} ; coluna = {coluna:>35} = {info[nivel][combinacao][coluna]:<35} ; info[nivel][combinacao] = {info[nivel][combinacao]}')
+									print(f'nivel = {nivel:<10} ; combinacao = {combinacao:35} ; coluna = {coluna:>35} = {info[nivel][combinacao][coluna]:<35} ; info[nivel][combinacao] = {info[nivel][combinacao]}')
 								continue
 
 							for nv in sorted(info,reverse=True): # nível em ordem decrescente
@@ -566,7 +576,7 @@ class SPED_EFD_Info:
 										flattened_info[coluna] = info[nv][comb][coluna] # eliminar os dois niveis [nivel][combinacao]
 										seen_column.add(coluna)
 										if self.verbose:
-											print(f'nivel = {nivel} ; nv = {nv} ; combinacao = {comb:25} ; coluna = {coluna:>35} = {info[nv][comb][coluna]:<35} ; info[nivel][combinacao] = {info[nv][comb]}')
+											print(f'nivel = {nivel} ; nv = {nv} ; combinacao = {comb:35} ; coluna = {coluna:>35} = {info[nv][comb][coluna]:<35} ; info[nivel][combinacao] = {info[nv][comb]}')
 						
 						print() if self.verbose else 0
 						

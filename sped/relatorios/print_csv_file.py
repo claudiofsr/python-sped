@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '08 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '10 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import os, re, sys, itertools, csv
 from time import time, sleep
@@ -57,13 +57,14 @@ class SPED_EFD_Info:
 
 	# Imprimir as informações desta coluna, nesta ordem
 	colunas_selecionadas = [
-		'Linhas', 'Arquivo da SPED EFD', 'Nº da Linha da EFD', 'CNPJ', 'NOME', 'Mês do Período de Apuração', 
-		'Ano do Período de Apuração', 'Tipo de Operação', 'IND_ORIG_CRED', 'REG', 'CST_PIS_COFINS', 
-		'NAT_BC_CRED', 'CFOP', 'COD_PART', *registros_de_cadastro_do_participante, 'CNPJ_CPF_PART', 
-		'Data de Emissão', 'Data de Execução', 'COD_ITEM', *registros_de_identificacao_do_item, 
-		'Chave Eletrônica', 'COD_MOD', 'NUM_DOC', 'NUM_ITEM', 'COD_CTA', *registros_de_plano_de_contas, 
-		'Valor do Item', 'VL_BC_PIS', 'VL_BC_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'VL_PIS', 'VL_COFINS',  
-		'VL_ISS', 'CST_ICMS', 'VL_BC_ICMS', 'ALIQ_ICMS', 'VL_ICMS'
+		'Linhas', 'EFD Tipo', 'Arquivo da SPED EFD', 'Nº da Linha da EFD', 'CNPJ Base', 'CNPJ', 'NOME', 
+		'Mês do Período de Apuração', 'Ano do Período de Apuração', 'Tipo de Operação', 'IND_ORIG_CRED', 
+		'REG', 'CST_PIS_COFINS', 'NAT_BC_CRED', 'CFOP', 'COD_PART', *registros_de_cadastro_do_participante, 
+		'CNPJ_CPF_PART', 'Data de Emissão', 'Data de Execução', 'COD_ITEM', 
+		*registros_de_identificacao_do_item, 'Chave Eletrônica', 'COD_MOD', 'NUM_DOC', 'NUM_ITEM', 
+		'COD_CTA', *registros_de_plano_de_contas, 'Valor do Item', 'VL_BC_PIS', 'VL_BC_COFINS', 
+		'ALIQ_PIS', 'ALIQ_COFINS', 'VL_PIS', 'VL_COFINS', 'VL_ISS', 
+		'CST_ICMS', 'VL_BC_ICMS', 'ALIQ_ICMS', 'VL_ICMS'
 	]
 	
 	# evitar duplicidade: Is there a more Pythonic way to prevent adding a duplicate to a list?
@@ -86,10 +87,10 @@ class SPED_EFD_Info:
 
 		if efd_tipo is None or re.search(r'PIS|COFINS|Contrib', efd_tipo, flags=re.IGNORECASE):
 			self.objeto_sped = ArquivoDigital_PIS_COFINS() # instanciar objeto sped_efd
-			self.efd_tipo = 'efd_contribuicoes'
+			self.efd_tipo = 'EFD Contribuições'
 		elif re.search(r'ICMS|IPI', efd_tipo, flags=re.IGNORECASE):
 			self.objeto_sped = ArquivoDigital_ICMS_IPI()   # instanciar objeto sped_efd
-			self.efd_tipo = 'efd_icms_ipi'
+			self.efd_tipo = 'EFD ICMS_IPI'
 		else:
 			raise ValueError(f'efd_tipo = {efd_tipo} inválido!')
 		
@@ -101,8 +102,9 @@ class SPED_EFD_Info:
 		self.basename = os.path.basename(self.file_path)
 
 		self.myDict = {}
+
+		self.efd_info_mensal = []
 	
-	@property
 	def imprimir_arquivo_csv(self):
 
 		select_object = My_Switch(type(self).registros_totais,verbose=self.verbose)
@@ -338,16 +340,17 @@ class SPED_EFD_Info:
 
 		dict_info['Arquivo da SPED EFD'] = self.basename
 		dict_info['Linhas'] = next(type(self).contador_de_linhas)
+		dict_info['EFD Tipo'] = self.efd_tipo # 'EFD Contribuições' ou 'EFD ICMS_IPI'
 
 		# adicionar informação de 'Tipo de Operação'
-		if self.efd_tipo == 'efd_contribuicoes':
+		if self.efd_tipo == 'EFD Contribuições':
 			if 'CST_PIS_COFINS' in dict_info and re.search(r'\d{1,2}', dict_info['CST_PIS_COFINS']):
 				cst = int(dict_info['CST_PIS_COFINS'])
 				if 1 <= cst <= 49:
 					dict_info['Tipo de Operação'] = 'Saída'
 				elif 50 <= cst <= 99:
 					dict_info['Tipo de Operação'] = 'Entrada'
-		elif self.efd_tipo == 'efd_icms_ipi':
+		elif self.efd_tipo == 'EFD ICMS_IPI':
 			if 'CFOP' in dict_info and re.search(r'\d{4}', dict_info['CFOP']):
 				cfop = int(dict_info['CFOP'])
 				if cfop >= 4000:
@@ -405,6 +408,9 @@ class SPED_EFD_Info:
 			valor_formatado  = self.formatar_valor(nome=campo, val=dict_info[campo])
 			dict_info[campo] = valor_formatado
 		
+		if 'CNPJ' in dict_info and len(dict_info['CNPJ']) == 18:
+			dict_info['CNPJ Base'] = dict_info['CNPJ'][:10]
+		
 		return dict_info
 	
 	def gerar_dict_de_combinacao(self, registro):
@@ -439,11 +445,11 @@ class SPED_EFD_Info:
 		
 		my_regex = r'^[A-K]' # Ler os blocos da A a K.
 		
-		if self.efd_tipo == 'efd_contribuicoes':
+		if self.efd_tipo == 'EFD Contribuições':
 			campos_necessarios = ['CST_PIS', 'CST_COFINS', 'VL_BC_PIS', 'VL_BC_COFINS']
 			# Bastariam os seguintes campos, desde que os registros de PIS/PASEP ocorressem sempre anteriores 
 			# aos registros de COFINS: campos_necessarios = ['CST_COFINS', 'VL_BC_COFINS']
-		elif self.efd_tipo == 'efd_icms_ipi':
+		elif self.efd_tipo == 'EFD ICMS_IPI':
 			campos_necessarios = ['CST_ICMS', 'VL_BC_ICMS']
 		
 		# https://docs.python.org/3/library/csv.html
@@ -455,9 +461,8 @@ class SPED_EFD_Info:
 			# writer.writerow(type(self).colunas_selecionadas)
 			
 			for key in sped_efd._blocos.keys():
-				
-				match_bloco = re.search(my_regex, key, flags=re.IGNORECASE)
-				if not match_bloco:
+
+				if not re.search(my_regex, key, flags=re.IGNORECASE):
 					continue
 				
 				bloco = sped_efd._blocos[key]
@@ -468,6 +473,9 @@ class SPED_EFD_Info:
 				for registro in bloco.registros:
 					
 					REG = registro.valores[1]
+
+					if self.efd_tipo == 'EFD ICMS_IPI' and REG == 'C170':
+						continue
 					
 					try:
 						nivel_anterior = nivel
@@ -488,11 +496,11 @@ class SPED_EFD_Info:
 					
 					if self.verbose:
 						print(f'\ncount = {count:>2} ; key = {key} ; REG = {REG} ; nivel_anterior = {nivel_anterior} ; nivel = {nivel} ; ', end='')
-						print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ; ')
+						print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ')
 						print(f"CST_PIS = {comb['CST_PIS']} ; CST_COFINS = {comb['CST_COFINS']} ; cst_contrib = {comb['cst_contrib']} ; ", end='')
 						print(f"VL_BC_PIS = {comb['VL_BC_PIS']} ; VL_BC_COFINS = {comb['VL_BC_COFINS']} ; bc_contrib = {comb['bc_contrib']}")
 						print(f'registro.as_line() = {registro.as_line()}')
-
+					
 					# As informações do pai e respectivos filhos devem ser apagadas quando 
 					# o nivel hierárquico regride dos filhos para pais diferentes.
 					if nivel < nivel_anterior or (nivel == nivel_anterior and num_de_campos < num_de_campos_anterior):
@@ -517,7 +525,6 @@ class SPED_EFD_Info:
 					info[nivel][combinacao]['CST_PIS_COFINS'] = comb['cst_contrib']
 					
 					for campo in registro.campos:
-						
 						try:
 							valor = registro.valores[campo.indice]
 						except:
@@ -552,7 +559,6 @@ class SPED_EFD_Info:
 					# set(['a', 'c']).issubset(['a', 'b', 'c', 'd']) or set(lista1).issubset(lista2)
 
 					if set(campos_necessarios).issubset( info[nivel][combinacao] ):
-						
 						# import this: Zen of Python: Flat is better than nested.
 						flattened_info = {} # eliminar os dois niveis [nivel][combinacao] e trazer todas as informações para apenas uma dimensão.
 						seen_column = set() # evitar duplicidade: Is there a more Pythonic way to prevent adding a duplicate to a list?
@@ -586,6 +592,8 @@ class SPED_EFD_Info:
 						flattened_info = self.adicionar_informacoes(flattened_info)
 						
 						writer.writerow( flattened_info.values() )
+						
+						self.efd_info_mensal.append(flattened_info)
 					
 					# Se verbose == True, limitar tamanho do arquivo impresso
 					# Imprimir apenas os 20 primeiros registros de cada Bloco

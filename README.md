@@ -13,6 +13,8 @@ Biblioteca para geração dos arquivos do Sistema Público de Escrituração Dig
   * six
   * cchardet
   * xlsxwriter
+  * numpy
+  * pandas
 
 ## Como instalar
 

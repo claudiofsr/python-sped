@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '06 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '10 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, re
 from datetime import datetime # https://strftime.org/
@@ -211,7 +211,7 @@ class My_Switch:
 
 		for nome_da_coluna in self.lista_de_colunas:
 
-			match_n_center = re.search(r'Linha|NUM_ITEM', nome_da_coluna, flags=re.IGNORECASE)
+			match_n_center = re.search(r'Linha|NUM_ITEM|EFD Tipo', nome_da_coluna, flags=re.IGNORECASE)
 			match_n_right  = re.search(r'NUM_DOC', nome_da_coluna, flags=re.IGNORECASE)
 			match_valor    = re.search(r'VL|Valor', nome_da_coluna, flags=re.IGNORECASE)
 			match_aliquota = re.search(r'Aliq', nome_da_coluna, flags=re.IGNORECASE)

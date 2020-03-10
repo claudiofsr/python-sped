@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '05 de Março de 2020 (início: 29 de Janeiro de 2020)'
+Data  = '10 de Março de 2020 (início: 29 de Janeiro de 2020)'
 Home  = 'https://github.com/claudiofsr/python-sped'
 
 # Instruções (no Linux):
@@ -26,7 +26,14 @@ from sped.relatorios.find_efd_files import ReadFiles, Total_Execution_Time
 from sped.relatorios.print_csv_file import SPED_EFD_Info
 from sped.relatorios.convert_csv_to_xlsx import CSV_to_Excel
 
+import locale
+locale.setlocale(locale.LC_NUMERIC, 'pt_BR.utf8') # 'pt_BR.utf8', 'pt_BR.UTF-8'
+
+import numpy as np
+import pandas as pd
+
 import psutil
+from time import time, sleep
 from multiprocessing import Pool # take advantage of multiple cores
 
 num_cpus = psutil.cpu_count(logical=True)
@@ -38,26 +45,24 @@ if python_version < (3,6,0):
 	print('versão atual', "%s.%s.%s" % (python_version[0],python_version[1],python_version[2]))
 	exit()
 
-def make_csv_file(numero_do_arquivo, sped_file_path, lista_de_arquivos):
+def get_sped_info(numero_do_arquivo, sped_file_path, lista_de_arquivos):
 
 	tipo_da_efd = lista_de_arquivos.informations[sped_file_path]['tipo']
 	codificacao = lista_de_arquivos.informations[sped_file_path]['codificação']
-
-	filename = os.path.splitext(sped_file_path)[0] # ('/home/user/file', '.txt')
-	arquivo_csv   = filename + '.csv'
 	
+	# Instantiate an object of type SPED_EFD_Info
 	csv_file = SPED_EFD_Info(sped_file_path, numero_do_arquivo, encoding=codificacao, efd_tipo=tipo_da_efd, verbose=False)
-	csv_file.imprimir_arquivo_csv
+	csv_file.imprimir_arquivo_csv()
 
-	return {numero_do_arquivo: arquivo_csv}
+	return csv_file.efd_info_mensal # lista de dicionários
 
-def make_target_name(new_dict,lista_de_arquivos):
+def make_target_name(arquivos_escolhidos):
 	data_ini = {}
 	data_fim = {}
 
-	for file_path in new_dict.values():
-		# PISCOFINS_20150701_20150731_12345678912345_...csv
-		# 12345678912345-123456789123-20170101-20170131-1-...-SPED-EFD.csv
+	for file_path in arquivos_escolhidos.values():
+		# PISCOFINS_20150701_20150731_12345678912345_... .txt
+		# 12345678912345-123456789123-20170101-20170131-1-...-SPED-EFD.txt
 		data01 = re.search(r'PISCOFINS_(\d{8})_(\d{8})', file_path, flags=re.IGNORECASE)
 		data02 = re.search(r'\d{14}.\d+.(\d{8}).(\d{8}).*SPED-EFD', file_path, flags=re.IGNORECASE)
 
@@ -72,9 +77,135 @@ def make_target_name(new_dict,lista_de_arquivos):
 	ini = list(sorted(data_ini.keys()))[0]
 	fim = list(sorted(data_fim.keys()))[-1]
 
-	target = f'Info do Contribuinte - SPED EFD - {ini} a {fim}'
+	target_name = f'Info do Contribuinte - SPED EFD - {ini} a {fim}'
 
-	return target
+	return target_name
+
+def consolidacao_das_operacoes_por_cst(efd_info_mensal):
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
+	# pd.options.display.precision = 2
+	pd.options.display.float_format = '{:14.2f}'.format
+	pd.options.display.max_rows = 100
+	pd.options.display.max_colwidth = 100
+	
+	colunas_selecionadas = [ 
+		'CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração',
+		'CST_PIS_COFINS', 
+		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
+		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+	]
+
+	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
+
+	#for d in info[0:2]:
+	#	print(f'{d = }')
+
+	df = pd.DataFrame(info)
+
+	# if you want to operate on multiple columns, put them in a list like so:
+	cols = [
+		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
+		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+	]
+
+	# pass them to df.replace(), specifying each char and it's replacement:
+	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
+	df[cols] = df[cols].astype(float)
+
+	# extrair os dois primeiros dígitos
+	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
+	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].astype(int, errors='ignore')
+	#grupo['CST'] = pd.to_numeric(grupo['CST_PIS_COFINS'])
+
+	# CST de entradas e saídas
+	grupo_entra = df[df['CST_PIS_COFINS'] >= 50 ].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_saida = df[df['CST_PIS_COFINS'] <= 49 ].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+
+	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+	
+	grupo_total_entra['CST_PIS_COFINS'] = 'Total das Entradas'
+	grupo_total_saida['CST_PIS_COFINS'] = 'Total das Saídas'
+
+	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
+	resultado = pd.concat(concatenar)
+
+	# Pandas Replace NaN with blank/empty string
+	resultado.replace(np.nan, '', regex=True, inplace=True)
+	resultado.reset_index(drop=True, inplace=True)
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
+	resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
+
+	# How to print one pandas column without index?
+	resultado = resultado.to_string(index=False)
+
+	print(f'{resultado}\n')
+
+def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
+	# pd.options.display.precision = 2
+	pd.options.display.float_format = '{:14.2f}'.format
+	pd.options.display.max_rows = 100
+	pd.options.display.max_colwidth = 100
+
+	colunas_selecionadas = [ 
+		'CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração',
+		'CST_ICMS', 'CFOP', 'ALIQ_ICMS',
+		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
+		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+	]
+
+	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
+
+	#for d in info[0:2]:
+	#	print(f'{d = }')
+
+	df = pd.DataFrame(info)
+
+	# if you want to operate on multiple columns, put them in a list like so:
+	cols = ['Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
+		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+	]
+
+	# pass them to df.replace(), specifying each char and it's replacement:
+	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
+	df[cols] = df[cols].astype(float)
+
+	# extrair os três primeiros dígitos
+	df['CST_ICMS']=df['CST_ICMS'].str.extract(r'(^\d{3})')
+
+	# extrair os quatro primeiros dígitos
+	df['CFOP']=df['CFOP'].str.extract(r'(^\d{4})')
+	df['CFOP']=df['CFOP'].astype(int, errors='ignore')
+	#df['CST'] = pd.to_numeric(df['CFOP'])
+
+	# CFOP de entradas e saídas
+	grupo_entra = df[df['CFOP'] <  4000].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_saida = df[df['CFOP'] >= 4000].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+
+	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+
+	grupo_total_entra['CFOP'] = 'Total das Entradas'
+	grupo_total_saida['CFOP'] = 'Total das Saídas'
+
+	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
+	resultado = pd.concat(concatenar)
+	
+	# Pandas Replace NaN with blank/empty string
+	resultado.replace(np.nan, '', regex=True, inplace=True)
+	resultado.reset_index(drop=True, inplace=True)
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
+	resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
+
+	# How to print one pandas column without index?
+	resultado = resultado.to_string(index=False)
+
+	print(f'{resultado}\n')
 
 def main():
 
@@ -182,20 +313,29 @@ def main():
 	# https://stackoverflow.com/questions/26068819/how-to-kill-all-pool-workers-in-multiprocess
 	# https://www.programcreek.com/python/index/175/multiprocessing
 	pool    = Pool( processes = int(max(1, num_cpus - 2)) )
-	results = [ pool.apply_async(make_csv_file, args=(k,v,lista_de_arquivos)) for (k,v) in arquivos_escolhidos.items() ]
-	output  = [ p.get() for p in results ] # output = [{num1: csv_file_path1}, {num2: csv_file_path2}, ...]
+	results = [ pool.apply_async(get_sped_info, args=(k,v,lista_de_arquivos)) for (k,v) in arquivos_escolhidos.items() ]
+	output  = [ p.get() for p in results ]
 	pool.close()
 
-	# https://stackoverflow.com/questions/5236296/how-to-convert-list-of-dict-to-dict
-	new_dict = { key: dicts[key] for dicts in output for key in dicts } # dict Comprehensions
-	#print(f'{new_dict = } ; {new_dict.values() = }')
+	# output  = [ [{}, {}, ...], [{}, {}, ...], ... ] --> [{},{},{},...]
+	# converter 'lista de lista de dicionario' em 'lista de dicionário'
+	efd_info_mensal_efd_contrib = [my_dict for lista in output for my_dict in lista if my_dict['EFD Tipo'] == 'EFD Contribuições']
+	efd_info_mensal_efd_icmsipi = [my_dict for lista in output for my_dict in lista if my_dict['EFD Tipo'] == 'EFD ICMS_IPI']
 
-	target = make_target_name(new_dict,lista_de_arquivos)
+	if len(efd_info_mensal_efd_contrib) > 0:
+		print('\nConsolidação das Operações Segregadas por CST:')
+		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib)
+	
+	if len(efd_info_mensal_efd_icmsipi) > 0:
+		print('\nConsolidação das Operações Segregadas por CFOP:')
+		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi)
+	
+	target_name = make_target_name(arquivos_escolhidos)
 
-	final_file_csv   = target + ".csv"
-	final_file_excel = target + ".xlsx"
+	final_file_csv   = target_name + ".csv"
+	final_file_excel = target_name + ".xlsx"
 
-	num_total_de_arquivos = len(new_dict)
+	num_total_de_arquivos = len(arquivos_escolhidos)
 	if num_total_de_arquivos > 1:
 		print(f"\nUnificar o(s) {num_total_de_arquivos} arquivo(s) CSV no arquivo '{final_file_csv}'.\n")
 
@@ -205,7 +345,10 @@ def main():
 		writer = csv.writer(csv_unificado, delimiter=';')
 
 		# https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files
-		for num, csv_file_path in new_dict.items():
+		for num, sped_file_path in arquivos_escolhidos.items():
+
+			filename = os.path.splitext(sped_file_path)[0] # ('/home/user/file', '.txt')
+			csv_file_path   = filename + '.csv'
 			
 			if num_total_de_arquivos > 1:
 				print(f"arquivo[{num:2d}]: '{csv_file_path}'.")

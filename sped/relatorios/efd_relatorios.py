@@ -90,7 +90,7 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal):
 	pd.options.display.max_colwidth = 100
 	
 	colunas_selecionadas = [ 
-		'CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração',
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
 		'CST_PIS_COFINS', 
 		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
 		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
@@ -119,11 +119,11 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal):
 	#grupo['CST'] = pd.to_numeric(grupo['CST_PIS_COFINS'])
 
 	# CST de entradas e saídas
-	grupo_entra = df[df['CST_PIS_COFINS'] >= 50 ].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
-	grupo_saida = df[df['CST_PIS_COFINS'] <= 49 ].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_entra = df[df['CST_PIS_COFINS'] >= 50 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_saida = df[df['CST_PIS_COFINS'] <= 49 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
 
-	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
-	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
+	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 	
 	grupo_total_entra['CST_PIS_COFINS'] = 'Total das Entradas'
 	grupo_total_saida['CST_PIS_COFINS'] = 'Total das Saídas'
@@ -152,7 +152,7 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
 	pd.options.display.max_colwidth = 100
 
 	colunas_selecionadas = [ 
-		'CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração',
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
 		'CST_ICMS', 'CFOP', 'ALIQ_ICMS',
 		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
 		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
@@ -183,11 +183,11 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
 	#df['CST'] = pd.to_numeric(df['CFOP'])
 
 	# CFOP de entradas e saídas
-	grupo_entra = df[df['CFOP'] <  4000].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
-	grupo_saida = df[df['CFOP'] >= 4000].groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_entra = df[df['CFOP'] <  4000].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_saida = df[df['CFOP'] >= 4000].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
 
-	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
-	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Mês do Período de Apuração', 'Ano do Período de Apuração'],as_index=False).sum()
+	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
+	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 
 	grupo_total_entra['CFOP'] = 'Total das Entradas'
 	grupo_total_saida['CFOP'] = 'Total das Saídas'

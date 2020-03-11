@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '10 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, re
 from datetime import datetime # https://strftime.org/
@@ -42,7 +42,7 @@ class My_Switch:
 	def formatar_mes_usando_tabelas(mes_num):
 		try:
 			mes_num = f'{int(mes_num):02d}'
-			return f'{EFD_Tabelas.tabela_mes_nominal[mes_num]}'
+			return f'{mes_num} {EFD_Tabelas.tabela_mes_nominal[mes_num]}'
 		except:
 			return mes_num
 	
@@ -51,7 +51,7 @@ class My_Switch:
 		# https://xlsxwriter.readthedocs.io/working_with_dates_and_time.html
 		dt = datetime.strptime(mes_num, "%m") # "%d%m%Y": ddmmaaaa
 		month_name = dt.strftime("%B")        # %B:dezembro' ; %b:'dez'
-		return month_name
+		return f'{mes_num} {month_name}'
 	
 	@staticmethod
 	def formatar_registro(registro):
@@ -211,7 +211,7 @@ class My_Switch:
 
 		for nome_da_coluna in self.lista_de_colunas:
 
-			match_n_center = re.search(r'Linha|NUM_ITEM|EFD Tipo', nome_da_coluna, flags=re.IGNORECASE)
+			match_n_center = re.search(r'Linha|NUM_ITEM|CNPJ|CPF|EFD Tipo', nome_da_coluna, flags=re.IGNORECASE)
 			match_n_right  = re.search(r'NUM_DOC', nome_da_coluna, flags=re.IGNORECASE)
 			match_valor    = re.search(r'VL|Valor', nome_da_coluna, flags=re.IGNORECASE)
 			match_aliquota = re.search(r'Aliq', nome_da_coluna, flags=re.IGNORECASE)

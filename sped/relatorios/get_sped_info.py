@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '10 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import os, re, sys, itertools, csv
 from time import time, sleep
@@ -451,154 +451,144 @@ class SPED_EFD_Info:
 			# aos registros de COFINS: campos_necessarios = ['CST_COFINS', 'VL_BC_COFINS']
 		elif self.efd_tipo == 'EFD ICMS_IPI':
 			campos_necessarios = ['CST_ICMS', 'VL_BC_ICMS']
-		
-		# https://docs.python.org/3/library/csv.html
-		with open(output_filename, mode='w', newline='', encoding='utf-8', errors='ignore') as csvfile:
-
-			writer = csv.writer(csvfile, delimiter=';')
-
-			# Os nomes das colunas serão impressos posteriormente em convert_csv_to_xlsx.py 
-			# writer.writerow(type(self).colunas_selecionadas)
 			
-			for key in sped_efd._blocos.keys():
+		for key in sped_efd._blocos.keys():
 
-				if not re.search(my_regex, key, flags=re.IGNORECASE):
+			if not re.search(my_regex, key, flags=re.IGNORECASE):
+				continue
+			
+			bloco = sped_efd._blocos[key]
+			count = 1
+			
+			info = self.info_de_abertura
+			
+			for registro in bloco.registros:
+				
+				REG = registro.valores[1]
+
+				if self.efd_tipo == 'EFD ICMS_IPI' and REG == 'C170':
 					continue
 				
-				bloco = sped_efd._blocos[key]
-				count = 1
+				try:
+					nivel_anterior = nivel
+					num_de_campos_anterior = num_de_campos
+				except:
+					nivel_anterior = registro.nivel + 1
+					num_de_campos_anterior = len(registro.campos) + 1
 				
-				info = self.info_de_abertura
-				
-				for registro in bloco.registros:
-					
-					REG = registro.valores[1]
+				nivel = registro.nivel # nível atual
+				num_de_campos = len(registro.campos)
 
-					if self.efd_tipo == 'EFD ICMS_IPI' and REG == 'C170':
+				# gerar dicionário cujas chaves geram uma combinação 
+				comb = self.gerar_dict_de_combinacao(registro)
+
+				# Utilizar uma combinação de valores para identificar univocamente um item.
+				# O pareamento entre itens de PIS e COFINS ocorre dinamicamente, linha a linha.
+				combinacao = f"{comb['cst_contrib']}_{comb['CST_ICMS']}_{comb['CFOP']}_{comb['bc_contrib']}_{comb['VL_BC_ICMS']}"
+				
+				if self.verbose:
+					print(f'\ncount = {count:>2} ; key = {key} ; REG = {REG} ; nivel_anterior = {nivel_anterior} ; nivel = {nivel} ; ', end='')
+					print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ')
+					print(f"CST_PIS = {comb['CST_PIS']} ; CST_COFINS = {comb['CST_COFINS']} ; cst_contrib = {comb['cst_contrib']} ; ", end='')
+					print(f"VL_BC_PIS = {comb['VL_BC_PIS']} ; VL_BC_COFINS = {comb['VL_BC_COFINS']} ; bc_contrib = {comb['bc_contrib']}")
+					print(f'registro.as_line() = {registro.as_line()}')
+				
+				# As informações do pai e respectivos filhos devem ser apagadas quando 
+				# o nivel hierárquico regride dos filhos para pais diferentes.
+				if nivel < nivel_anterior or (nivel == nivel_anterior and num_de_campos < num_de_campos_anterior):
+					if self.verbose:
+						if nivel < nivel_anterior:
+							print(f'\n nivel atual: nivel = {nivel} < nivel_anterior = {nivel_anterior} ; ', end='')
+						if nivel == nivel_anterior and num_de_campos < num_de_campos_anterior:
+							print(f'\n numero de campos atual: num_de_campos = {num_de_campos} < num_de_campos_anterior = {num_de_campos_anterior} ; ', end='')
+						print(f'deletar informações em info a partir do nível {nivel} em diante:')
+					
+					# Delete items from dictionary while iterating: 
+					# https://www.geeksforgeeks.org/python-delete-items-from-dictionary-while-iterating/
+					for nv in list(info):
+						if nv >= nivel:
+							del info[nv]
+							if self.verbose:
+								print(f'\t *** deletar informações do nível {nv}: del info[{nv}] ***')
+					print() if self.verbose else 0
+				
+				# https://www.geeksforgeeks.org/python-creating-multidimensional-dictionary/
+				info.setdefault(nivel, {}).setdefault(combinacao, {})['Nível Hierárquico'] = nivel
+				info[nivel][combinacao]['CST_PIS_COFINS'] = comb['cst_contrib']
+				
+				for campo in registro.campos:
+					try:
+						valor = registro.valores[campo.indice]
+					except:
+						valor = f'{REG}[{campo.indice}:{campo.nome}] sem valor definido'
+					
+					if self.verbose:
+						valor_formatado = self.formatar_valor(nome=campo.nome, val=valor)
+						print(f'campo.indice = {campo.indice:>2} ; campo.nome = {campo.nome:>22} ; registro.valores[{campo.indice:>2}] = {valor:<50} ; valor_formatado = {valor_formatado}')
+					
+					if campo.nome not in type(self).registros_totais: # filtrar registros_totais
 						continue
 					
-					try:
-						nivel_anterior = nivel
-						num_de_campos_anterior = num_de_campos
-					except:
-						nivel_anterior = registro.nivel + 1
-						num_de_campos_anterior = len(registro.campos) + 1
+					# reter em info{} as informações dos registros contidos em registros_totais
+					info[nivel][combinacao][campo.nome] = valor
 					
-					nivel = registro.nivel # nível atual
-					num_de_campos = len(registro.campos)
+					if campo.nome in type(self).registros_de_valor_do_item:
+						info[nivel][combinacao]['Valor do Item'] = valor
+					if campo.nome in type(self).registros_de_data_emissao  and len(valor) == 8:
+						info[nivel][combinacao]['Data de Emissão'] = valor
+					if campo.nome in type(self).registros_de_data_execucao and len(valor) == 8:
+						info[nivel][combinacao]['Data de Execução'] = valor
+					if campo.nome in type(self).registros_de_chave_eletronica:
+						info[nivel][combinacao]['Chave Eletrônica'] = valor
+					# Informar nomes dos estabelecimentos de cada CNPJ
+					if campo.nome == 'CNPJ' and valor in self.info_dos_estabelecimentos:
+						info[nivel][combinacao]['NOME'] = self.info_dos_estabelecimentos[valor]
+				
+				if self.verbose:
+					print(f'\n-->info[nivel][combinacao] = info[{nivel}][{combinacao}] = {info[nivel][combinacao]}\n')
+				
+				#https://stackoverflow.com/questions/3931541/how-to-check-if-all-of-the-following-items-are-in-a-list
+				# set(['a', 'c']).issubset(['a', 'b', 'c', 'd']) or set(lista1).issubset(lista2)
 
-					# gerar dicionário cujas chaves geram uma combinação 
-					comb = self.gerar_dict_de_combinacao(registro)
+				if set(campos_necessarios).issubset( info[nivel][combinacao] ):
+					# import this: Zen of Python: Flat is better than nested.
+					flattened_info = {} # eliminar os dois niveis [nivel][combinacao] e trazer todas as informações para apenas uma dimensão.
+					seen_column = set() # evitar duplicidade: Is there a more Pythonic way to prevent adding a duplicate to a list?
 
-					# Utilizar uma combinação de valores para identificar univocamente um item.
-					# O pareamento entre itens de PIS e COFINS ocorre dinamicamente, linha a linha.
-					combinacao = f"{comb['cst_contrib']}_{comb['CST_ICMS']}_{comb['CFOP']}_{comb['bc_contrib']}_{comb['VL_BC_ICMS']}"
-					
-					if self.verbose:
-						print(f'\ncount = {count:>2} ; key = {key} ; REG = {REG} ; nivel_anterior = {nivel_anterior} ; nivel = {nivel} ; ', end='')
-						print(f'num_de_campos_anterior = {num_de_campos_anterior} ; num_de_campos = {num_de_campos} ')
-						print(f"CST_PIS = {comb['CST_PIS']} ; CST_COFINS = {comb['CST_COFINS']} ; cst_contrib = {comb['cst_contrib']} ; ", end='')
-						print(f"VL_BC_PIS = {comb['VL_BC_PIS']} ; VL_BC_COFINS = {comb['VL_BC_COFINS']} ; bc_contrib = {comb['bc_contrib']}")
-						print(f'registro.as_line() = {registro.as_line()}')
-					
-					# As informações do pai e respectivos filhos devem ser apagadas quando 
-					# o nivel hierárquico regride dos filhos para pais diferentes.
-					if nivel < nivel_anterior or (nivel == nivel_anterior and num_de_campos < num_de_campos_anterior):
-						if self.verbose:
-							if nivel < nivel_anterior:
-								print(f'\n nivel atual: nivel = {nivel} < nivel_anterior = {nivel_anterior} ; ', end='')
-							if nivel == nivel_anterior and num_de_campos < num_de_campos_anterior:
-								print(f'\n numero de campos atual: num_de_campos = {num_de_campos} < num_de_campos_anterior = {num_de_campos_anterior} ; ', end='')
-							print(f'deletar informações em info a partir do nível {nivel} em diante:')
+					# em info{} há os registros_totais, em flattened_info{} apenas as colunas para impressao
+					for coluna in type(self).colunas_selecionadas:
+						flattened_info[coluna] = '' # atribuir valor inicial para todas as colunas
 						
-						# Delete items from dictionary while iterating: 
-						# https://www.geeksforgeeks.org/python-delete-items-from-dictionary-while-iterating/
-						for nv in list(info):
-							if nv >= nivel:
-								del info[nv]
-								if self.verbose:
-									print(f'\t *** deletar informações do nível {nv}: del info[{nv}] ***')
-						print() if self.verbose else 0
-					
-					# https://www.geeksforgeeks.org/python-creating-multidimensional-dictionary/
-					info.setdefault(nivel, {}).setdefault(combinacao, {})['Nível Hierárquico'] = nivel
-					info[nivel][combinacao]['CST_PIS_COFINS'] = comb['cst_contrib']
-					
-					for campo in registro.campos:
-						try:
-							valor = registro.valores[campo.indice]
-						except:
-							valor = f'{REG}[{campo.indice}:{campo.nome}] sem valor definido'
-						
-						if self.verbose:
-							valor_formatado = self.formatar_valor(nome=campo.nome, val=valor)
-							print(f'campo.indice = {campo.indice:>2} ; campo.nome = {campo.nome:>22} ; registro.valores[{campo.indice:>2}] = {valor:<50} ; valor_formatado = {valor_formatado}')
-						
-						if campo.nome not in type(self).registros_totais: # filtrar registros_totais
+						if coluna in info[nivel][combinacao]:
+							flattened_info[coluna] = info[nivel][combinacao][coluna] # eliminar os dois niveis [nivel][combinacao]
+							seen_column.add(coluna)
+							if self.verbose:
+								print(f'nivel = {nivel:<10} ; combinacao = {combinacao:35} ; coluna = {coluna:>35} = {info[nivel][combinacao][coluna]:<35} ; info[nivel][combinacao] = {info[nivel][combinacao]}')
 							continue
-						
-						# reter em info{} as informações dos registros contidos em registros_totais
-						info[nivel][combinacao][campo.nome] = valor
-						
-						if campo.nome in type(self).registros_de_valor_do_item:
-							info[nivel][combinacao]['Valor do Item'] = valor
-						if campo.nome in type(self).registros_de_data_emissao  and len(valor) == 8:
-							info[nivel][combinacao]['Data de Emissão'] = valor
-						if campo.nome in type(self).registros_de_data_execucao and len(valor) == 8:
-							info[nivel][combinacao]['Data de Execução'] = valor
-						if campo.nome in type(self).registros_de_chave_eletronica:
-							info[nivel][combinacao]['Chave Eletrônica'] = valor
-						# Informar nomes dos estabelecimentos de cada CNPJ
-						if campo.nome == 'CNPJ' and valor in self.info_dos_estabelecimentos:
-							info[nivel][combinacao]['NOME'] = self.info_dos_estabelecimentos[valor]
+
+						for nv in sorted(info,reverse=True): # nível em ordem decrescente
+							if coluna in seen_column:        # informações já obtidas
+								break                        # as informações obtidas do nível mais alto prevalecerá
+							for comb in info[nv]:
+								if coluna in info[nv][comb]:
+									flattened_info[coluna] = info[nv][comb][coluna] # eliminar os dois niveis [nivel][combinacao]
+									seen_column.add(coluna)
+									if self.verbose:
+										print(f'nivel = {nivel} ; nv = {nv} ; combinacao = {comb:35} ; coluna = {coluna:>35} = {info[nv][comb][coluna]:<35} ; info[nivel][combinacao] = {info[nv][comb]}')
 					
-					if self.verbose:
-						print(f'\n-->info[nivel][combinacao] = info[{nivel}][{combinacao}] = {info[nivel][combinacao]}\n')
+					print() if self.verbose else 0
 					
-					#https://stackoverflow.com/questions/3931541/how-to-check-if-all-of-the-following-items-are-in-a-list
-					# set(['a', 'c']).issubset(['a', 'b', 'c', 'd']) or set(lista1).issubset(lista2)
-
-					if set(campos_necessarios).issubset( info[nivel][combinacao] ):
-						# import this: Zen of Python: Flat is better than nested.
-						flattened_info = {} # eliminar os dois niveis [nivel][combinacao] e trazer todas as informações para apenas uma dimensão.
-						seen_column = set() # evitar duplicidade: Is there a more Pythonic way to prevent adding a duplicate to a list?
-
-						# em info{} há os registros_totais, em flattened_info{} apenas as colunas para impressao
-						for coluna in type(self).colunas_selecionadas:
-							flattened_info[coluna] = '' # atribuir valor inicial para todas as colunas
-							
-							if coluna in info[nivel][combinacao]:
-								flattened_info[coluna] = info[nivel][combinacao][coluna] # eliminar os dois niveis [nivel][combinacao]
-								seen_column.add(coluna)
-								if self.verbose:
-									print(f'nivel = {nivel:<10} ; combinacao = {combinacao:35} ; coluna = {coluna:>35} = {info[nivel][combinacao][coluna]:<35} ; info[nivel][combinacao] = {info[nivel][combinacao]}')
-								continue
-
-							for nv in sorted(info,reverse=True): # nível em ordem decrescente
-								if coluna in seen_column:        # informações já obtidas
-									break                        # as informações obtidas do nível mais alto prevalecerá
-								for comb in info[nv]:
-									if coluna in info[nv][comb]:
-										flattened_info[coluna] = info[nv][comb][coluna] # eliminar os dois niveis [nivel][combinacao]
-										seen_column.add(coluna)
-										if self.verbose:
-											print(f'nivel = {nivel} ; nv = {nv} ; combinacao = {comb:35} ; coluna = {coluna:>35} = {info[nv][comb][coluna]:<35} ; info[nivel][combinacao] = {info[nv][comb]}')
-						
-						print() if self.verbose else 0
-						
-						flattened_info['Nº da Linha da EFD'] = registro.numero_da_linha
-						
-						# Adicionar informações em flattened_info ou formatar alguns de seus campos com o uso de tabelas ou funções
-						flattened_info = self.adicionar_informacoes(flattened_info)
-						
-						writer.writerow( flattened_info.values() )
-						
-						self.efd_info_mensal.append(flattened_info)
+					flattened_info['Nº da Linha da EFD'] = registro.numero_da_linha
 					
-					# Se verbose == True, limitar tamanho do arquivo impresso
-					# Imprimir apenas os 20 primeiros registros de cada Bloco
-					count += 1
-					if self.verbose and count > 20:
-						break
+					# Adicionar informações em flattened_info ou formatar alguns de seus campos com o uso de tabelas ou funções
+					flattened_info = self.adicionar_informacoes(flattened_info)
+					
+					self.efd_info_mensal.append(flattened_info)
+				
+				# Se verbose == True, limitar tamanho do arquivo impresso
+				# Imprimir apenas os 20 primeiros registros de cada Bloco
+				count += 1
+				if self.verbose and count > 20:
+					break
 
-		print(f"arquivo[{self.numero_do_arquivo:2d}]: '{output_filename}'.")
+		print(f"arquivo[{self.numero_do_arquivo:2d}]: '{self.file_path}'.")

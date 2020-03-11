@@ -29,7 +29,7 @@ class Exportar_Excel:
 		self.verbose = verbose
 
 	@property
-	def exportar_para_xlsx(self):
+	def salvar_info(self):
 
 		# Create an new Excel file.
 		workbook = xlsxwriter.Workbook(self.output_excel)

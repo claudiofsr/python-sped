@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '10 de Março de 2020 (início: 29 de Janeiro de 2020)'
+Data  = '11 de Março de 2020 (início: 29 de Janeiro de 2020)'
 Home  = 'https://github.com/claudiofsr/python-sped'
 
 # Instruções (no Linux):
@@ -19,12 +19,12 @@ Home  = 'https://github.com/claudiofsr/python-sped'
 # execute no terminal o camando:
 # > efd_relatorios
 
-import sys, os, re, csv
+import sys, os, re
 from time import time, sleep
 from sped import __version__
 from sped.relatorios.find_efd_files import ReadFiles, Total_Execution_Time
-from sped.relatorios.print_csv_file import SPED_EFD_Info
-from sped.relatorios.convert_csv_to_xlsx import CSV_to_Excel
+from sped.relatorios.get_sped_info import SPED_EFD_Info
+from sped.relatorios.exportar_para_xlsx import Exportar_Excel
 
 import locale
 locale.setlocale(locale.LC_NUMERIC, 'pt_BR.utf8') # 'pt_BR.utf8', 'pt_BR.UTF-8'
@@ -81,7 +81,7 @@ def make_target_name(arquivos_escolhidos):
 
 	return target_name
 
-def consolidacao_das_operacoes_por_cst(efd_info_mensal):
+def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
 	# pd.options.display.precision = 2
@@ -98,7 +98,7 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal):
 
 	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
 
-	#for d in info[0:2]:
+	#for d in info[0:4]:
 	#	print(f'{d = }')
 
 	df = pd.DataFrame(info)
@@ -136,14 +136,18 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal):
 	resultado.reset_index(drop=True, inplace=True)
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
-	resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
+	# resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
+
+	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
+	# records - each row becomes a dictionary where key is column name and value is the data in the cell
+	efd_info_total['Consolidacao por CST'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
 
 	print(f'{resultado}\n')
 
-def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
+def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
 	# pd.options.display.precision = 2
@@ -160,7 +164,7 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
 
 	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
 
-	#for d in info[0:2]:
+	#for d in info[0:4]:
 	#	print(f'{d = }')
 
 	df = pd.DataFrame(info)
@@ -200,7 +204,11 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal):
 	resultado.reset_index(drop=True, inplace=True)
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
-	resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
+	# resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_dict.html
+	# records - each row becomes a dictionary where key is column name and value is the data in the cell
+	efd_info_total['Consolidacao por CFOP'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -305,9 +313,12 @@ def main():
 		print(f'\t{sped_file}')
 	print()
 
-	print(f"Gerar arquivos CSV com as informações do SPED EFD:\n")
+	print(f"Analisar informações do(s) arquivo(s) SPED EFD:\n")
 
 	start = time()
+
+	target_name = make_target_name(arquivos_escolhidos)
+	final_file_excel = target_name + ".xlsx"
 
 	# https://sebastianraschka.com/Articles/2014_multiprocessing.html
 	# https://stackoverflow.com/questions/26068819/how-to-kill-all-pool-workers-in-multiprocess
@@ -322,52 +333,23 @@ def main():
 	efd_info_mensal_efd_contrib = [my_dict for lista in output for my_dict in lista if my_dict['EFD Tipo'] == 'EFD Contribuições']
 	efd_info_mensal_efd_icmsipi = [my_dict for lista in output for my_dict in lista if my_dict['EFD Tipo'] == 'EFD ICMS_IPI']
 
+	# dicionario com informações do SPED EFD que será convertido em .xlsx
+	efd_info_total = {}
+
+	print(f"\nSalvar informações no formato XLSX do Excel:\n\n\t'{final_file_excel}'")
+
 	if len(efd_info_mensal_efd_contrib) > 0:
-		print('\nConsolidação das Operações Segregadas por CST:')
-		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib)
+		efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
+		print('\nConsolidação das Operações Segregadas por CST (EFD Contribuições):')
+		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib, efd_info_total)
 	
 	if len(efd_info_mensal_efd_icmsipi) > 0:
-		print('\nConsolidação das Operações Segregadas por CFOP:')
-		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi)
+		efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
+		print('\nConsolidação das Operações Segregadas por CFOP (EFD ICMS_IPI):')
+		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi, efd_info_total)
 	
-	target_name = make_target_name(arquivos_escolhidos)
-
-	final_file_csv   = target_name + ".csv"
-	final_file_excel = target_name + ".xlsx"
-
-	num_total_de_arquivos = len(arquivos_escolhidos)
-	if num_total_de_arquivos > 1:
-		print(f"\nUnificar o(s) {num_total_de_arquivos} arquivo(s) CSV no arquivo '{final_file_csv}'.\n")
-
-	# unificar todos os arquivos csv no arquivo final_file_csv
-	with open(final_file_csv, mode='w', newline='', encoding='utf-8', errors='ignore') as csv_unificado:
-
-		writer = csv.writer(csv_unificado, delimiter=';')
-
-		# https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files
-		for num, sped_file_path in arquivos_escolhidos.items():
-
-			filename = os.path.splitext(sped_file_path)[0] # ('/home/user/file', '.txt')
-			csv_file_path   = filename + '.csv'
-			
-			if num_total_de_arquivos > 1:
-				print(f"arquivo[{num:2d}]: '{csv_file_path}'.")
-			
-			with open(csv_file_path, mode='r', newline='', encoding='utf-8', errors='ignore') as f:
-				reader = csv.reader(f, delimiter=';')
-				writer.writerows(reader) # write all lines at once
-			
-			if os.path.exists(csv_file_path):
-				os.remove(csv_file_path)
-	
-	print(f"\nConverter o arquivo '{final_file_csv}' para o formato XLSX do Excel:\n")
-	print(f"'{final_file_csv}' -> '{final_file_excel}'.\n")
-
-	excel_file = CSV_to_Excel(final_file_csv, final_file_excel, verbose=False)
-	excel_file.convert_csv_to_xlsx
-
-	if os.path.exists(final_file_csv):
-		os.remove(final_file_csv)
+	excel_file = Exportar_Excel(efd_info_total, final_file_excel, verbose=False)
+	excel_file.salvar_info
 
 	end = time()
 

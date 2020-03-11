@@ -128,7 +128,7 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
-	resultado = pd.concat(concatenar, axis=0, sort=True, ignore_index=True)
+	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
 
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
@@ -199,7 +199,7 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
-	resultado = pd.concat(concatenar, axis=0, sort=True, ignore_index=True)
+	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
 	
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)

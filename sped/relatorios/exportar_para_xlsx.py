@@ -3,7 +3,7 @@
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
-import sys, itertools
+import sys, itertools, re
 import xlsxwriter # pip install xlsxwriter
 from sped.relatorios.switcher import My_Switch
 from sped.relatorios.get_sped_info import SPED_EFD_Info
@@ -59,21 +59,33 @@ class Exportar_Excel:
 		select_format.formatar_colunas_do_arquivo_excel(workbook)
 		myFormat = select_format.dicionario
 
-		# a largura máxima de cada coluna
+		# Para cada efd_tipo, obter a largura máxima de cada coluna
 		largura_max = {}
 
 		split_number = 500_000 # limitar o número de linhas em cada aba (worksheet)
 
-		# efd_info_total['EFD Contribuições'] = [{'coluna01':valor01,'coluna02':valor02},...]
-		# cada dicionário na lista é uma linha com info de EFD
+		# efd_info_total['EFD Contribuições'] = [{'coluna01':valor01,'coluna02':valor02}, {}, ...]
+		# Cada efd_tipo possui uma lista com informações em dicionários
+		# Cada dicionário de dicionários é uma linha com informações de SPED EFD
 
 		for efd_tipo in self.efd_info_total:
 
-			for row_index, my_dict in enumerate(self.efd_info_total[efd_tipo],0):
+			lista = self.efd_info_total[efd_tipo]
+			colunas_nomes = list(lista[0].keys())
+			#print(f"\n{efd_tipo = } ; {colunas_nomes = }\n")
 
-				#print(f"\n{my_dict = }\n")
+			for row_index, my_dict in enumerate(lista, 0):
+
+				# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
+				# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
+				if 'Mês do Período de Apuração' in my_dict:
+					my_dict['Mês do Período de Apuração'] = re.sub(r'^\d+\s*', '', my_dict['Mês do Período de Apuração'])
+
+				# Após concatenar EFDs de meses distintos, refazer a contagem do número de linhas
+				if 'Linhas' in my_dict:
+					my_dict['Linhas'] = row_index + 2
+
 				colunas_valores = list(my_dict.values())
-				colunas_nomes = list(my_dict.keys())
 
 				num_aba   = row_index // split_number + 1 # parte inteira da divisão
 				num_linha = row_index  % split_number + 1 # módulo da divisão ou resto
@@ -87,13 +99,13 @@ class Exportar_Excel:
 					# https://xlsxwriter.readthedocs.io/worksheet.html
 					worksheet_name = worksheet.get_name()
 
-					# imprimir os nomes das colunas em (0,0)
-					worksheet.write_row(0, 0, colunas_nomes, header_format)
-
 					# First, we find the length of the name of each column
 					largura_max[worksheet_name] = [len(c) for c in colunas_nomes]
+
+					# imprimir os nomes das colunas em (0,0)
+					worksheet.write_row(0, 0, colunas_nomes, header_format)
 				
-				for column_index, cell in enumerate(colunas_valores,0):
+				for column_index, cell in enumerate(colunas_valores, 0):
 
 					cell = str(cell)
 
@@ -102,10 +114,6 @@ class Exportar_Excel:
 						largura_max[worksheet_name][column_index] = len(cell)
 					
 					column_name = colunas_nomes[column_index]
-
-					if column_name == 'Linhas': # refazer a contagem do número de linhas
-						worksheet.write(num_linha, column_index, row_index + 2, myFormat[column_name])
-						continue
 
 					if len(cell) > 0:
 						worksheet.write(num_linha, column_index, myValue[column_name](cell), myFormat[column_name])

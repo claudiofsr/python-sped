@@ -113,14 +113,12 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
 	df[cols] = df[cols].astype(float)
 
-	# extrair os dois primeiros dígitos
+	# reter/extrair os dois primeiros dígitos
 	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
-	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].astype(int, errors='ignore')
-	#grupo['CST'] = pd.to_numeric(grupo['CST_PIS_COFINS'])
 
 	# CST de entradas e saídas
-	grupo_entra = df[df['CST_PIS_COFINS'] >= 50 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
-	grupo_saida = df[df['CST_PIS_COFINS'] <= 49 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_entra = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 50 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_saida = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 49 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
 
 	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
@@ -135,12 +133,16 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	resultado.reset_index(drop=True, inplace=True)
 
+	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
+	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
+	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
+
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
 	# resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
 
 	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
-	efd_info_total['Consolidacao por CST'] = resultado.to_dict('records')
+	efd_info_total['Consolidacao EFD Contrib'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -178,17 +180,15 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
 	df[cols] = df[cols].astype(float)
 
-	# extrair os três primeiros dígitos
+	# reter/extrair os três primeiros dígitos
 	df['CST_ICMS']=df['CST_ICMS'].str.extract(r'(^\d{3})')
 
-	# extrair os quatro primeiros dígitos
+	# reter/extrair os quatro primeiros dígitos
 	df['CFOP']=df['CFOP'].str.extract(r'(^\d{4})')
-	df['CFOP']=df['CFOP'].astype(int, errors='ignore')
-	#df['CST'] = pd.to_numeric(df['CFOP'])
 
 	# CFOP de entradas e saídas
-	grupo_entra = df[df['CFOP'] <  4000].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
-	grupo_saida = df[df['CFOP'] >= 4000].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_entra = df[ df['CFOP'].astype(int, errors='ignore') <  4000 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_saida = df[ df['CFOP'].astype(int, errors='ignore') >= 4000 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
 
 	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
@@ -203,12 +203,16 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	resultado.reset_index(drop=True, inplace=True)
 
+	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
+	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
+	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
+
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
 	# resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_dict.html
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
-	efd_info_total['Consolidacao por CFOP'] = resultado.to_dict('records')
+	efd_info_total['Consolidacao EFD ICMS_IPI'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -338,13 +342,19 @@ def main():
 
 	print(f"\nSalvar informações no formato XLSX do Excel:\n\n\t'{final_file_excel}'")
 
+	unificar_efds = True
+
+	if unificar_efds:
+		# Unificar em 'Itens de Docs Fiscais' as informações de ['EFD Contribuições', 'EFD ICMS_IPI']
+		efd_info_total['Itens de Docs Fiscais'] = efd_info_mensal_efd_contrib + efd_info_mensal_efd_icmsipi
+
 	if len(efd_info_mensal_efd_contrib) > 0:
-		efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
+		#efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
 		print('\nConsolidação das Operações Segregadas por CST (EFD Contribuições):')
 		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib, efd_info_total)
 	
 	if len(efd_info_mensal_efd_icmsipi) > 0:
-		efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
+		#efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
 		print('\nConsolidação das Operações Segregadas por CFOP (EFD ICMS_IPI):')
 		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi, efd_info_total)
 	

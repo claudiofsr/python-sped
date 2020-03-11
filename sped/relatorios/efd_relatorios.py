@@ -126,12 +126,13 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	grupo_total_entra['CST_PIS_COFINS'] = 'Total das Entradas'
 	grupo_total_saida['CST_PIS_COFINS'] = 'Total das Saídas'
 
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
-	resultado = pd.concat(concatenar)
+	resultado = pd.concat(concatenar, axis=0, sort=True, ignore_index=True)
 
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
-	resultado.reset_index(drop=True, inplace=True)
+	#resultado.reset_index(drop=True, inplace=True)
 
 	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
 	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
@@ -196,12 +197,13 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	grupo_total_entra['CFOP'] = 'Total das Entradas'
 	grupo_total_saida['CFOP'] = 'Total das Saídas'
 
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
-	resultado = pd.concat(concatenar)
+	resultado = pd.concat(concatenar, axis=0, sort=True, ignore_index=True)
 	
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
-	resultado.reset_index(drop=True, inplace=True)
+	#resultado.reset_index(drop=True, inplace=True)
 
 	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
 	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.

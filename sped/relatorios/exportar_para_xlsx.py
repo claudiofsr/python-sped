@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '12 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, itertools, re
 import xlsxwriter # pip install xlsxwriter
@@ -29,7 +29,7 @@ class Exportar_Excel:
 		self.verbose = verbose
 
 	@property
-	def salvar_info(self):
+	def salvar_arquivo_no_hd(self):
 
 		# Create an new Excel file.
 		workbook = xlsxwriter.Workbook(self.output_excel)

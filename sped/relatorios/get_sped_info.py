@@ -145,6 +145,21 @@ class SPED_EFD_Info:
     	# Devo substituir 'self.__class__.static_var' por 'type(self).static_var' ?
 		return f'{type(self).__name__}(file_path={self.file_path!r}, encoding={self.encoding!r}, efd_tipo={self.efd_tipo!r}, verbose={self.verbose!r})'
 
+	# https://stackoverflow.com/questions/9573244/how-to-check-if-the-string-is-empty
+	def isBlank(self,myString):
+		'''
+		How to check if the string is empty?
+		use the fact that empty sequences are false
+		'''
+		if myString and myString.strip():
+			# myString is not None AND myString is not empty or blank
+			return False
+		# myString is None OR myString is empty or blank
+		return True
+	
+	def isNotBlank(self,myString):
+		return bool(myString and myString.strip())
+
 	def formatar_valor(self,nome,val):
 		"""
 		Evitar n repetições de 'if condicao_j then A_j else B_j' tal que 1 <= j <= n, 
@@ -154,6 +169,10 @@ class SPED_EFD_Info:
 		A dictionary maintaining the key-value pair. key as strings, and values as the function objects, 
 		and one main function to search and return the function object.
 		"""
+		
+		if val is None or self.isBlank(str(val)):
+			return ''
+
 		# https://stackoverflow.com/questions/11445226/better-optimization-technique-using-if-else-or-dictionary
 		# https://softwareengineering.stackexchange.com/questions/182093/why-store-a-function-inside-a-python-dictionary/182095
 		# https://stackoverflow.com/questions/9168340/using-a-dictionary-to-select-function-to-execute
@@ -361,7 +380,7 @@ class SPED_EFD_Info:
 		# adicionar informação de NAT_BC_CRED para os créditos (50 <= cst <= 66) 
 		# quando houver informação do CFOP e NAT_BC_CRED estiver vazio.
 		if ('CFOP' in dict_info and 'NAT_BC_CRED' in dict_info 
-			and re.search(r'\d{4}', dict_info['CFOP']) and len(dict_info['NAT_BC_CRED']) == 0
+			and re.search(r'\d{4}', dict_info['CFOP']) and self.isBlank(dict_info['NAT_BC_CRED'])
 			#and ( re.search(r'[1-9]', dict_info['ALIQ_PIS']) or re.search(r'[1-9]', dict_info['ALIQ_COFINS']) ) # aliq_cofins > 0
 			and 'CST_PIS_COFINS' in dict_info and re.search(r'\d{1,2}', dict_info['CST_PIS_COFINS'])):
 			cfop = str(dict_info['CFOP'])

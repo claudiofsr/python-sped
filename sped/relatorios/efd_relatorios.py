@@ -91,8 +91,7 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	
 	colunas_selecionadas = [ 
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-		'CST_PIS_COFINS', 
-		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
+		'CST_PIS_COFINS', 'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
 		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
 	]
 
@@ -117,8 +116,13 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
 
 	# CST de entradas e saídas
-	grupo_entra = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 50 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
-	grupo_saida = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 49 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'], as_index=False).sum()
+	grupo_entra = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 50 ].groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
+	], as_index=False).sum()
+
+	grupo_saida = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 49 ].groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
+	], as_index=False).sum()
 
 	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
@@ -188,8 +192,13 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	df['CFOP']=df['CFOP'].str.extract(r'(^\d{4})')
 
 	# CFOP de entradas e saídas
-	grupo_entra = df[ df['CFOP'].astype(int, errors='ignore') <  4000 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
-	grupo_saida = df[ df['CFOP'].astype(int, errors='ignore') >= 4000 ].groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'], as_index=False).sum()
+	grupo_entra = df[ df['CFOP'].astype(int, errors='ignore') <  4000 ].groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'
+	], as_index=False).sum()
+
+	grupo_saida = df[ df['CFOP'].astype(int, errors='ignore') >= 4000 ].groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_ICMS', 'CFOP', 'ALIQ_ICMS'
+	], as_index=False).sum()
 
 	grupo_total_entra = grupo_entra.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
 	grupo_total_saida = grupo_saida.groupby(['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'],as_index=False).sum()
@@ -215,6 +224,66 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_dict.html
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
 	efd_info_total['Consolidacao EFD ICMS_IPI'] = resultado.to_dict('records')
+
+	# How to print one pandas column without index?
+	resultado = resultado.to_string(index=False)
+
+	print(f'{resultado}\n')
+
+def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
+	# pd.options.display.precision = 2
+	pd.options.display.float_format = '{:14.2f}'.format
+	pd.options.display.max_rows = 100
+	pd.options.display.max_colwidth = 100
+	
+	colunas_selecionadas = [
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
+		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS',
+		'NAT_BC_CRED', 'VL_BC_PIS','VL_BC_COFINS',
+	]
+
+	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
+
+	df = pd.DataFrame(info)
+
+	# if you want to operate on multiple columns, put them in a list like so:
+	cols = ['VL_BC_PIS','VL_BC_COFINS']
+
+	# pass them to df.replace(), specifying each char and it's replacement:
+	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
+	df[cols] = df[cols].astype(float)
+
+	# reter/extrair os dois primeiros dígitos
+	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
+	df['NAT_BC_CRED']=df['NAT_BC_CRED'].str.extract(r'(^\d{2})')
+
+	grupo = df.groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
+		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
+	], as_index=False).sum()
+
+	grupo_total = grupo.groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
+	],as_index=False).sum()
+
+	grupo_total['NAT_BC_CRED'] = 'BC dos Creditos (Soma)'
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
+	concatenar = [grupo, grupo_total]
+	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
+
+	# Pandas Replace NaN with blank/empty string
+	resultado.replace(np.nan, '', regex=True, inplace=True)
+
+	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
+	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
+	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
+
+	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
+	# records - each row becomes a dictionary where key is column name and value is the data in the cell
+	efd_info_total['BC dos Creditos'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -351,6 +420,9 @@ def main():
 		efd_info_total['Itens de Docs Fiscais'] = efd_info_mensal_efd_contrib + efd_info_mensal_efd_icmsipi
 
 	if len(efd_info_mensal_efd_contrib) > 0:
+		print('\nBase de Cálculos dos Créditos (EFD Contribuições):')
+		consolidacao_das_operacoes_por_natureza(efd_info_mensal_efd_contrib, efd_info_total)
+
 		#efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
 		print('\nConsolidação das Operações Segregadas por CST (EFD Contribuições):')
 		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib, efd_info_total)

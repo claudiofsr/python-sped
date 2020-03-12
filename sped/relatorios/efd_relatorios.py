@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '11 de Março de 2020 (início: 29 de Janeiro de 2020)'
+Data  = '12 de Março de 2020 (início: 29 de Janeiro de 2020)'
 Home  = 'https://github.com/claudiofsr/python-sped'
 
 # Instruções (no Linux):
@@ -134,6 +134,11 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
 	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
 
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html
+	resultado.sort_values(by=[
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
+	], ascending=[True,True,True], inplace=True,)
+
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	#resultado.reset_index(drop=True, inplace=True)
@@ -209,6 +214,11 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo_saida, grupo_total_saida, grupo_entra, grupo_total_entra]
 	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html
+	resultado.sort_values(by=[
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
+	], ascending=[True,True,True], inplace=True,)
 	
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
@@ -274,6 +284,11 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	concatenar = [grupo, grupo_total]
 	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
 
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html
+	resultado.sort_values(by=[
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'IND_ORIG_CRED'
+	], ascending=[True,True,True,False], inplace=True,)
+
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 
@@ -289,6 +304,85 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	resultado = resultado.to_string(index=False)
 
 	print(f'{resultado}\n')
+
+
+def consolidacao_das_operacoes_por_natureza_teste(efd_info_mensal, efd_info_total):
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.set_option.html
+	# pd.options.display.precision = 2
+	pd.options.display.float_format = '{:14.2f}'.format
+	pd.options.display.max_rows = 100
+	pd.options.display.max_colwidth = 100
+	
+	colunas_selecionadas = [
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
+		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS',
+		'NAT_BC_CRED', 'VL_BC_PIS','VL_BC_COFINS',
+	]
+
+	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
+
+	df = pd.DataFrame(info)
+
+	# if you want to operate on multiple columns, put them in a list like so:
+	cols = ['VL_BC_PIS','VL_BC_COFINS']
+
+	# pass them to df.replace(), specifying each char and it's replacement:
+	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
+	df[cols] = df[cols].astype(float)
+
+	# reter/extrair os dois primeiros dígitos
+	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
+	df['NAT_BC_CRED']=df['NAT_BC_CRED'].str.extract(r'(^\d{2})')
+
+	grupo = df.groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
+		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
+	], as_index=False).sum()
+
+	print(f'\n 1: \n{grupo}\n')
+
+	rateio = [0.4, 0.5, 0.1]
+
+	grupo['Tributado no MI'    ] = grupo['VL_BC_COFINS'] * rateio[0]
+	grupo['Não Tributado no MI'] = grupo['VL_BC_COFINS'] * rateio[1]
+	grupo['de Exportação'      ] = grupo['VL_BC_COFINS'] * rateio[2]
+
+	print(f'\n 2: \n{grupo}\n')
+
+	grupo_total = grupo.groupby([
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
+	],as_index=False).sum()
+
+	grupo_total['NAT_BC_CRED'] = 'BC dos Creditos (Soma)'
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
+	concatenar = [grupo, grupo_total]
+	resultado = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
+
+	print(f'\n 3: \n{resultado}\n')
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html
+	resultado.sort_values(by=[
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'IND_ORIG_CRED'
+	], ascending=[True,True,True,False], inplace=True,)
+
+	# Pandas Replace NaN with blank/empty string
+	resultado.replace(np.nan, '', regex=True, inplace=True)
+
+	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
+	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
+	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
+
+	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
+	# records - each row becomes a dictionary where key is column name and value is the data in the cell
+	efd_info_total['BC dos Creditos'] = resultado.to_dict('records')
+
+	# How to print one pandas column without index?
+	resultado = resultado.to_string(index=False)
+
+	print(f'{resultado}\n')
+
 
 def main():
 
@@ -433,7 +527,7 @@ def main():
 		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi, efd_info_total)
 	
 	excel_file = Exportar_Excel(efd_info_total, final_file_excel, verbose=False)
-	excel_file.salvar_info
+	excel_file.salvar_arquivo_no_hd
 
 	end = time()
 

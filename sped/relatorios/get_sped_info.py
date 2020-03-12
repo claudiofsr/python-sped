@@ -54,6 +54,8 @@ class SPED_EFD_Info:
 	# adicionado 'VL_OPR' para EFD ICMS_IPI
 	registros_de_valor_do_item = ['VL_DOC', 'VL_BRT', 'VL_OPER', 'VL_OPR', 'VL_OPER_DEP', 'VL_BC_CRED', 
 		'VL_BC_EST', 'VL_TOT_REC', 'VL_REC_CAIXA', 'VL_REC_COMP', 'VL_REC', 'VL_ITEM']
+	
+	colunas_de_rateio = ['Tributado no MI',  'Não Tributado no MI',  'de Exportação']
 
 	# Imprimir as informações desta coluna, nesta ordem
 	colunas_selecionadas = [
@@ -71,7 +73,7 @@ class SPED_EFD_Info:
 	registros_totais = set(
 		registros_de_data + registros_de_identificacao_do_item + registros_de_plano_de_contas + 
 		registros_de_codigo_cst + registros_de_chave_eletronica + registros_de_valor_do_item + 
-		colunas_selecionadas)
+		colunas_selecionadas + colunas_de_rateio)
 	
 	# initialize the attributes of the class
 	

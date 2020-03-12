@@ -90,7 +90,8 @@ class My_Switch:
 		try:
 			natureza_bc = f'{int(natureza_bc):02d}'
 			return f'{natureza_bc} - {EFD_Tabelas.tabela_bc_do_credito[natureza_bc]}'
-		except:
+		except Exception as inst:
+			print(inst)
 			return natureza_bc
 	
 	@staticmethod

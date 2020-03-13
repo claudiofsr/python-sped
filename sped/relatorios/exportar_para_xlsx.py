@@ -76,11 +76,6 @@ class Exportar_Excel:
 
 			for row_index, my_dict in enumerate(lista, 0):
 
-				# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
-				# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
-				if 'Mês do Período de Apuração' in my_dict:
-					my_dict['Mês do Período de Apuração'] = re.sub(r'^\d+\s*', '', my_dict['Mês do Período de Apuração'])
-
 				# Após concatenar EFDs de meses distintos, refazer a contagem do número de linhas
 				if 'Linhas' in my_dict:
 					my_dict['Linhas'] = row_index + 2
@@ -107,15 +102,14 @@ class Exportar_Excel:
 				
 				for column_index, cell in enumerate(colunas_valores, 0):
 
-					cell = str(cell)
+					column_name  = colunas_nomes[column_index]
+					column_value = str(cell)
 
 					# reter largura máxima
-					if len(cell) > largura_max[worksheet_name][column_index]:
-						largura_max[worksheet_name][column_index] = len(cell)
-					
-					column_name = colunas_nomes[column_index]
+					if len(column_value) > largura_max[worksheet_name][column_index]:
+						largura_max[worksheet_name][column_index] = len(column_value)
 
-					if len(cell) > 0:
+					if len(column_value) > 0:
 						worksheet.write(num_linha, column_index, myValue[column_name](cell), myFormat[column_name])
 					else:
 						# Write cell with row/column notation.
@@ -135,7 +129,7 @@ class Exportar_Excel:
 
 			# Ajustar largura das colunas com os valores máximos
 			largura_min = 4
-			for i, width in enumerate(largura_max[worksheet_name]):
+			for i, width in enumerate(largura_max[worksheet_name],0):
 				if width > 120: # largura máxima
 					width = 120
 				worksheet.set_column(i, i, width + largura_min)

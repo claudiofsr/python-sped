@@ -42,7 +42,7 @@ class My_Switch:
 	def formatar_mes_usando_tabelas(mes_num):
 		try:
 			mes_num = f'{int(mes_num):02d}'
-			return f'{mes_num} {EFD_Tabelas.tabela_mes_nominal[mes_num]}'
+			return f'{EFD_Tabelas.tabela_mes_nominal[mes_num]}'
 		except:
 			return mes_num
 	
@@ -51,7 +51,7 @@ class My_Switch:
 		# https://xlsxwriter.readthedocs.io/working_with_dates_and_time.html
 		dt = datetime.strptime(mes_num, "%m") # "%d%m%Y": ddmmaaaa
 		month_name = dt.strftime("%B")        # %B:dezembro' ; %b:'dez'
-		return f'{mes_num} {month_name}'
+		return f'{month_name}'
 	
 	@staticmethod
 	def formatar_registro(registro):
@@ -135,7 +135,6 @@ class My_Switch:
 		for nome_da_coluna in self.lista_de_colunas:
 			
 			match_linha = re.search(r'^Linhas', nome_da_coluna, flags=re.IGNORECASE)
-			match_mes   = re.search(r'^Mês do Período', nome_da_coluna, flags=re.IGNORECASE)
 			match_reg   = re.search(r'^REG', nome_da_coluna, flags=re.IGNORECASE)
 			match_cfop  = re.search(r'^CFOP', nome_da_coluna, flags=re.IGNORECASE)
 			match_nbc   = re.search(r'NAT_BC_CRED', nome_da_coluna, flags=re.IGNORECASE)
@@ -156,7 +155,6 @@ class My_Switch:
 			# bool(match_linha) retorna True ou False.
 			switcher = {
 				bool(match_linha):      self.formatar_linhas,
-				bool(match_mes):        self.formatar_mes_usando_tabelas,
 				bool(match_reg):        self.formatar_registro,
 				bool(match_cfop):       self.formatar_cfop,
 				bool(match_nbc):        self.formatar_nbc,
@@ -191,14 +189,24 @@ class My_Switch:
 			match_valor    = re.search(r'VL|Valor|Tributado|Exportação', nome_da_coluna, flags=re.IGNORECASE)
 			match_aliquota = re.search(r'Aliq', nome_da_coluna, flags=re.IGNORECASE)
 			match_data     = re.search(r'Data|DT_', nome_da_coluna, flags=re.IGNORECASE)
-
-			self.dicionario[nome_da_coluna] = self.funcao_identidade
+			match_mes      = re.search(r'^Mês do Período', nome_da_coluna, flags=re.IGNORECASE)
 			
-			# Estes vários if/elif/elif/... são executados apenas uma vez na execução do método/função.
-			if match_n_center or match_n_right or match_valor or match_aliquota:
-				self.dicionario[nome_da_coluna] = self.formatar_valores_reais
-			elif match_data:
-				self.dicionario[nome_da_coluna] = self.formatar_datas
+			# Estes vários testes de condições/switcher são executados apenas uma vez na execução do método/função.
+			switcher = {
+				bool(match_n_center):  self.formatar_valores_reais,
+				bool(match_n_right):   self.formatar_valores_reais,
+				bool(match_valor):     self.formatar_valores_reais,
+				bool(match_aliquota):  self.formatar_valores_reais,
+				bool(match_data):      self.formatar_datas,
+				bool(match_mes):       self.formatar_mes_usando_tabelas,
+			}
+
+			# Caso não ocorra nenhum match, retornar default value = self.funcao_identidade
+			self.dicionario[nome_da_coluna] = switcher.get(True, self.funcao_identidade)
+
+		if self.verbose:
+			for idx, key in enumerate(sorted(self.dicionario.keys()),1):
+				print(f'{key:>40}: [{idx:>2}] {self.dicionario[key]}')
 	
 	def formatar_colunas_do_arquivo_excel(self,workbook):
 

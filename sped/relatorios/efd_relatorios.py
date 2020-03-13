@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '12 de Março de 2020 (início: 29 de Janeiro de 2020)'
+Data  = '13 de Março de 2020 (início: 29 de Janeiro de 2020)'
 Home  = 'https://github.com/claudiofsr/python-sped'
 
 # Instruções (no Linux):
@@ -512,17 +512,20 @@ def main():
 	if unificar_efds:
 		# Unificar em 'Itens de Docs Fiscais' as informações de ['EFD Contribuições', 'EFD ICMS_IPI']
 		efd_info_total['Itens de Docs Fiscais'] = efd_info_mensal_efd_contrib + efd_info_mensal_efd_icmsipi
+	else:
+		# As informações da EFD serão colocadas em abas distintas a depender de 'EFD Tipo'
+		if len(efd_info_mensal_efd_contrib) > 0:
+			efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
+		if len(efd_info_mensal_efd_icmsipi) > 0:
+			efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
 
 	if len(efd_info_mensal_efd_contrib) > 0:
 		print('\nBase de Cálculos dos Créditos (EFD Contribuições):')
 		consolidacao_das_operacoes_por_natureza(efd_info_mensal_efd_contrib, efd_info_total)
-
-		#efd_info_total['EFD Contribuições'] = efd_info_mensal_efd_contrib
 		print('\nConsolidação das Operações Segregadas por CST (EFD Contribuições):')
 		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib, efd_info_total)
 	
 	if len(efd_info_mensal_efd_icmsipi) > 0:
-		#efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
 		print('\nConsolidação das Operações Segregadas por CFOP (EFD ICMS_IPI):')
 		consolidacao_das_operacoes_por_cfop(efd_info_mensal_efd_icmsipi, efd_info_total)
 	

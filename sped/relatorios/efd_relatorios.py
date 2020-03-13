@@ -143,10 +143,6 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	#resultado.reset_index(drop=True, inplace=True)
 
-	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
-	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
-	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
-
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
 	# resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
 
@@ -224,10 +220,6 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	#resultado.reset_index(drop=True, inplace=True)
 
-	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
-	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
-	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
-
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
 	# resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
 
@@ -291,10 +283,6 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
-
-	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
-	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
-	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
 
 	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
@@ -369,10 +357,6 @@ def consolidacao_das_operacoes_por_natureza_teste(efd_info_mensal, efd_info_tota
 
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)
-
-	# Inicialmente os dígitos foram uteis para ordenação dos meses. Agora não mais!
-	# Ao imprimir, reter apenas os nomes dos meses: '01 Janeiro' --> 'Janeiro'.
-	resultado['Mês do Período de Apuração']=resultado['Mês do Período de Apuração'].str.extract(r'^\d+\s*(.*)\s*$')
 
 	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell

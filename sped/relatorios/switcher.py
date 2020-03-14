@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, re
+from time import time, sleep
+from decimal import Decimal
 from datetime import datetime # https://strftime.org/
 from sped.relatorios.efd_tabelas import EFD_Tabelas
 from sped.campos import (CampoData, CampoCNPJ, CampoCPF, CampoNCM,
@@ -90,8 +92,9 @@ class My_Switch:
 		try:
 			natureza_bc = f'{int(natureza_bc):02d}'
 			return f'{natureza_bc} - {EFD_Tabelas.tabela_bc_do_credito[natureza_bc]}'
-		except Exception as inst:
-			print(inst)
+		#except Exception as inst:
+		except:
+			# print(inst)
 			return natureza_bc
 	
 	@staticmethod
@@ -110,7 +113,20 @@ class My_Switch:
 			return doc_fiscal
 
 	@staticmethod
+	def formatar_valores_decimais(valor):
+		#if not valor:
+		#	return None
+		try:
+			return Decimal(valor)
+		except:
+			valor = valor.replace( '.', ''  ) # 4.218.239,19 --> 4218239,19
+			valor = valor.replace( ',', '.' ) #   4218239,19 --> 4218239.19
+			return Decimal(valor)
+
+	@staticmethod
 	def formatar_valores_reais(valor):
+		#if not valor:
+		#	return None
 		try:
 			return float(valor)
 		except:
@@ -193,10 +209,10 @@ class My_Switch:
 			
 			# Estes vários testes de condições/switcher são executados apenas uma vez na execução do método/função.
 			switcher = {
-				bool(match_n_center):  self.formatar_valores_reais,
-				bool(match_n_right):   self.formatar_valores_reais,
-				bool(match_valor):     self.formatar_valores_reais,
-				bool(match_aliquota):  self.formatar_valores_reais,
+				bool(match_n_center):  self.formatar_valores_decimais,
+				bool(match_n_right):   self.formatar_valores_decimais,
+				bool(match_valor):     self.formatar_valores_decimais,
+				bool(match_aliquota):  self.formatar_valores_decimais,
 				bool(match_data):      self.formatar_datas,
 				bool(match_mes):       self.formatar_mes_usando_tabelas,
 			}

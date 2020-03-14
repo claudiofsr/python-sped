@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '11 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import os, re, sys, itertools, csv
 from time import time, sleep
@@ -57,6 +57,8 @@ class SPED_EFD_Info:
 	
 	colunas_de_rateio = ['Tributado no MI',  'Não Tributado no MI',  'de Exportação']
 
+	colunas_adicionais = ['Tipo de Crédito']
+
 	# Imprimir as informações desta coluna, nesta ordem
 	colunas_selecionadas = [
 		'Linhas', 'EFD Tipo', 'Arquivo da SPED EFD', 'Nº da Linha da EFD', 'CNPJ Base', 'CNPJ', 'NOME', 
@@ -66,14 +68,59 @@ class SPED_EFD_Info:
 		*registros_de_identificacao_do_item, 'Chave Eletrônica', 'COD_MOD', 'NUM_DOC', 'NUM_ITEM', 
 		'COD_CTA', *registros_de_plano_de_contas, 'Valor do Item', 'VL_BC_PIS', 'VL_BC_COFINS', 
 		'ALIQ_PIS', 'ALIQ_COFINS', 'VL_PIS', 'VL_COFINS', 'VL_ISS', 
-		'CST_ICMS', 'VL_BC_ICMS', 'ALIQ_ICMS', 'VL_ICMS'
+		'CST_ICMS', 'VL_BC_ICMS', 'ALIQ_ICMS', 'VL_ICMS', 
+		# 'VL_ICMS_RECOLHER', 'VL_ICMS_RECOLHER_OA'
 	]
 	
 	# evitar duplicidade: Is there a more Pythonic way to prevent adding a duplicate to a list?
 	registros_totais = set(
 		registros_de_data + registros_de_identificacao_do_item + registros_de_plano_de_contas + 
 		registros_de_codigo_cst + registros_de_chave_eletronica + registros_de_valor_do_item + 
-		colunas_selecionadas + colunas_de_rateio)
+		colunas_selecionadas + colunas_de_rateio + colunas_adicionais)
+
+	# https://www.geeksforgeeks.org/classmethod-in-python/
+	# https://realpython.com/instance-class-and-static-methods-demystified/
+	# A class method is a method which is bound to the class and not the object of the class.
+	@staticmethod
+	def natureza_da_bc_dos_creditos():
+		"""
+		Tabela CFOP - Operações Geradoras de Créditos - Versão 1.0.0
+		Atualizada em 13.03.2020
+		http://sped.rfb.gov.br/arquivo/show/1681
+		"""
+		info = {} # dicionário[cfop] = código da Natuzera da BC dos Cŕeditos
+
+		for cfop in [
+				1102,1113,1117,1118,1121,1159,1251,1403,
+				1652,2102,2113,2117,2118,2121,2159,2251,
+				2403,2652,3102,3251,3652,
+			]:
+			# Código 01 - CFOP de 'Aquisição de Bens para Revenda'
+			info[cfop] = 1
+		for cfop in [
+				1101,1111,1116,1120,1122,1126,1128,1132,
+				1135,1401,1407,1456,1556,1651,1653,2101,
+				2111,2116,2120,2122,2126,2128,2132,2135,
+				2401,2407,2456,2556,2651,2653,3101,3126,
+				3128,3556,3651,3653,
+			]:
+			# Código 02 - CFOP de 'Aquisição de Bens Utilizados como Insumo'
+			info[cfop] = 2
+		for cfop in [1124,1125,1933,2124,2125,2933]:
+			# Código 03 - CFOP de 'Aquisição de Serviços Utilizados como Insumos'
+			info[cfop] = 3
+		for cfop in [
+				1201,1202,1203,1204,1206,1207,1215,1216,
+				1410,1411,1660,1661,1662,2201,2202,2206,
+				2207,2215,2216,2410,2411,2660,2661,2662,
+			]:
+			# Código 12 - CFOP de 'Devolução de Vendas Sujeitas à Incidência Não-Cumulativa'
+			info[cfop] = 12
+		for cfop in [1922,2922]:
+			# Código 13 - CFOP de 'Outras Operações com Direito a Crédito'
+			info[cfop] = 13
+		
+		return info
 	
 	# initialize the attributes of the class
 	
@@ -112,8 +159,13 @@ class SPED_EFD_Info:
 		select_object = My_Switch(type(self).registros_totais,verbose=self.verbose)
 		select_object.formatar_colunas_do_arquivo_csv()
 		self.myDict = select_object.dicionario
-				
+						
 		self.objeto_sped.readfile(self.file_path, codificacao=self.encoding, verbose=self.verbose)
+
+		self.codigo_da_natureza = type(self).natureza_da_bc_dos_creditos()
+
+		if self.verbose:
+			print(f'self.codigo_da_natureza = {self.codigo_da_natureza} ; len(self.codigo_da_natureza) = {len(self.codigo_da_natureza)}\n')
 		
 		self.info_dos_estabelecimentos = self.cadastro_dos_estabelecimentos(self.objeto_sped)
 
@@ -172,8 +224,8 @@ class SPED_EFD_Info:
 		and one main function to search and return the function object.
 		"""
 		
-		if val is None or self.isBlank(str(val)):
-			return ''
+		#if val is None or self.isBlank(str(val)):
+		#	return ''
 
 		# https://stackoverflow.com/questions/11445226/better-optimization-technique-using-if-else-or-dictionary
 		# https://softwareengineering.stackexchange.com/questions/182093/why-store-a-function-inside-a-python-dictionary/182095
@@ -186,37 +238,6 @@ class SPED_EFD_Info:
 			val_formated = val
 		#print(f'nome = {nome} ; val = {val} ; val_formated = {val_formated}')
 		return val_formated
-		
-	# https://radek.io/2011/07/21/static-variables-and-methods-in-python/
-	@staticmethod
-	def natureza_da_bc_dos_creditos(cfop):	
-		"""
-		http://sped.rfb.gov.br/arquivo/show/1681
-		Tabela CFOP - Operações Geradoras de Créditos - Versão 1.0.0
-		"""
-		natureza_bc = None
-		
-		# Código 01 - CFOP de 'Aquisição de Bens para Revenda'
-		if   cfop in ['1102','1113','1117','1118','1121','1251','1403','1652','2102','2113',
-					  '2117','2118','2121','2251','2403','2652','3102','3251','3652']:
-			natureza_bc = 1
-		# Código 02 - CFOP de 'Aquisição de Bens Utilizados como Insumo'
-		elif cfop in ['1101','1111','1116','1120','1122','1126','1128','1401','1407','1556',
-					  '1651','1653','2101','2111','2116','2120','2122','2126','2128','2401',
-					  '2407','2556','2651','2653','3101','3126','3128','3556','3651','3653']:
-			natureza_bc = 2
-		# Código 03 - CFOP de 'Aquisição de Serviços Utilizados como Insumos'
-		elif cfop in ['1124','1125','1933','2124','2125','2933']:
-			natureza_bc = 3
-		# Código 12 - CFOP de 'Devolução de Vendas Sujeitas à Incidência Não-Cumulativa'
-		elif cfop in ['1201','1202','1203','1204','1410','1411','1660','1661','1662','2201',
-					  '2202','2410','2411','2660','2661','2662']:
-			natureza_bc = 12
-		# Código 13 - CFOP de 'Outras Operações com Direito a Crédito'
-		elif cfop in ['1922','2922']:
-			natureza_bc = 13
-		
-		return natureza_bc
 
 	def cadastro_dos_estabelecimentos(self,sped_efd):
 		"""
@@ -379,16 +400,19 @@ class SPED_EFD_Info:
 				else:
 					dict_info['Tipo de Operação'] = 'Entrada'
 		
-		# adicionar informação de NAT_BC_CRED para os créditos (50 <= cst <= 66) 
+		# Adicionar informação de NAT_BC_CRED para os créditos (50 <= cst <= 66) 
 		# quando houver informação do CFOP e NAT_BC_CRED estiver vazio.
-		if ('CFOP' in dict_info and 'NAT_BC_CRED' in dict_info 
+		if (# 'CFOP' in dict_info and 'NAT_BC_CRED' in dict_info and 'CST_PIS_COFINS' in dict_info
+			set(['CFOP','NAT_BC_CRED','CST_PIS_COFINS']).issubset(dict_info)
 			and re.search(r'\d{4}', dict_info['CFOP']) and self.isBlank(dict_info['NAT_BC_CRED'])
-			#and ( re.search(r'[1-9]', dict_info['ALIQ_PIS']) or re.search(r'[1-9]', dict_info['ALIQ_COFINS']) ) # aliq_cofins > 0
-			and 'CST_PIS_COFINS' in dict_info and re.search(r'\d{1,2}', dict_info['CST_PIS_COFINS'])):
-			cfop = str(dict_info['CFOP'])
+			and re.search(r'\d{1,2}', dict_info['CST_PIS_COFINS'])):
+
+			cfop = int(dict_info['CFOP'])
 			cst  = int(dict_info['CST_PIS_COFINS'])
+			msg_padrao  = f'CFOP {cfop} não define a NAT_BC_CRED de acordo com a '
+			msg_padrao += f'<Tabela CFOP - Operações Geradoras de Créditos> atualizada em 13.03.2020'
 			if 50 <= cst <= 66:
-				dict_info['NAT_BC_CRED'] = type(self).natureza_da_bc_dos_creditos(cfop)
+				dict_info['NAT_BC_CRED'] = self.codigo_da_natureza.get(cfop, msg_padrao)
 		
 		# Índice de Origem do Crédito: Leia os comentários do 'Registro M100: Crédito de PIS/Pasep Relativo ao Período'.
 		# Os códigos vinculados à importação (108, 208 e 308) são obtidos através da informação de CFOP 
@@ -399,21 +423,21 @@ class SPED_EFD_Info:
 			indicador_de_origem = 'Mercado Externo (Importação)'
 		dict_info['IND_ORIG_CRED'] = indicador_de_origem
 
-		# adicionar informação de cadastro do participante obtido do Registro 0150
+		# Adicionar informação de cadastro do participante obtido do Registro 0150
 		# info_do_participante[codigo_do_participante][campo] = descricao
 		if 'COD_PART' in dict_info and dict_info['COD_PART'] in self.info_do_participante:
 			codigo_do_participante = dict_info['COD_PART']
 			for campo in self.info_do_participante[codigo_do_participante]:
 				dict_info[campo] = self.info_do_participante[codigo_do_participante][campo]
 
-		# adicionar informação de identificação do item obtido do Registro 0200
+		# Adicionar informação de identificação do item obtido do Registro 0200
 		# info_do_item[codigo_do_item][campo] = descricao
 		if 'COD_ITEM' in dict_info and dict_info['COD_ITEM'] in self.info_do_item:
 			codigo_do_item = dict_info['COD_ITEM']
 			for campo in self.info_do_item[codigo_do_item]:
 				dict_info[campo] = self.info_do_item[codigo_do_item][campo]
 		
-		# adicionar informação do plano de contas obtido do Registro 0500
+		# Adicionar informação do plano de contas obtido do Registro 0500
 		# info_da_conta[codigo_da_conta][campo] = descricao
 		if 'COD_CTA' in dict_info and dict_info['COD_CTA'] in self.info_da_conta:
 			codigo_da_conta = dict_info['COD_CTA']
@@ -464,7 +488,8 @@ class SPED_EFD_Info:
 	
 	def info_dos_blocos(self,sped_efd,output_filename):
 		
-		my_regex = r'^[A-K]' # Ler os blocos da A a K.
+		#my_regex = r'^[1A-K]' # Ler os blocos 1 e A a K.
+		my_regex = r'^[A-K]' # Ler os blocos A a K.
 		
 		if self.efd_tipo == 'EFD Contribuições':
 			campos_necessarios = ['CST_PIS', 'CST_COFINS', 'VL_BC_PIS', 'VL_BC_COFINS']
@@ -543,6 +568,7 @@ class SPED_EFD_Info:
 					except:
 						valor = f'{REG}[{campo.indice}:{campo.nome}] sem valor definido'
 					
+					#if self.verbose or REG == 'E110':
 					if self.verbose:
 						valor_formatado = self.formatar_valor(nome=campo.nome, val=valor)
 						print(f'campo.indice = {campo.indice:>2} ; campo.nome = {campo.nome:>22} ; registro.valores[{campo.indice:>2}] = {valor:<50} ; valor_formatado = {valor_formatado}')

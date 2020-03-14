@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '12 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '13 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, itertools, re
 import xlsxwriter # pip install xlsxwriter
@@ -71,16 +71,12 @@ class Exportar_Excel:
 		for efd_tipo in self.efd_info_total:
 
 			lista = self.efd_info_total[efd_tipo]
-			colunas_nomes = list(lista[0].keys())
-			#print(f"\n{efd_tipo = } ; {colunas_nomes = }\n")
-
+			
 			for row_index, my_dict in enumerate(lista, 0):
 
 				# Após concatenar EFDs de meses distintos, refazer a contagem do número de linhas
 				if 'Linhas' in my_dict:
 					my_dict['Linhas'] = row_index + 2
-
-				colunas_valores = list(my_dict.values())
 
 				num_aba   = row_index // split_number + 1 # parte inteira da divisão
 				num_linha = row_index  % split_number + 1 # módulo da divisão ou resto
@@ -95,25 +91,24 @@ class Exportar_Excel:
 					worksheet_name = worksheet.get_name()
 
 					# First, we find the length of the name of each column
-					largura_max[worksheet_name] = [len(c) for c in colunas_nomes]
+					largura_max[worksheet_name] = [len(c) for c in my_dict.keys()]
 
 					# imprimir os nomes das colunas em (0,0)
-					worksheet.write_row(0, 0, colunas_nomes, header_format)
+					worksheet.write_row(0, 0, my_dict.keys(), header_format)
 				
-				for column_index, cell in enumerate(colunas_valores, 0):
+				for column_index, (column_name, value) in enumerate(my_dict.items(), 0):
 
-					column_name  = colunas_nomes[column_index]
-					column_value = str(cell)
+					column_value = str(value)
 
+					if len(column_value) > 0:
+						worksheet.write(num_linha, column_index, myValue[column_name](column_value), myFormat[column_name])
+					else:
+						# Write cell with row/column notation.
+						worksheet.write(num_linha, column_index, column_value)
+					
 					# reter largura máxima
 					if len(column_value) > largura_max[worksheet_name][column_index]:
 						largura_max[worksheet_name][column_index] = len(column_value)
-
-					if len(column_value) > 0:
-						worksheet.write(num_linha, column_index, myValue[column_name](cell), myFormat[column_name])
-					else:
-						# Write cell with row/column notation.
-						worksheet.write(num_linha, column_index, cell)
 		
 		# configurações finais de cada aba
 		for worksheet in workbook.worksheets():

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '13 de Março de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
 
 import sys, itertools, re
 import xlsxwriter # pip install xlsxwriter
@@ -64,19 +64,26 @@ class Exportar_Excel:
 
 		split_number = 500_000 # limitar o número de linhas em cada aba (worksheet)
 
-		# efd_info_total['EFD Contribuições'] = [{'coluna01':valor01,'coluna02':valor02}, {}, ...]
-		# Cada efd_tipo possui uma lista com informações em dicionários
-		# Cada dicionário de dicionários é uma linha com informações de SPED EFD
+		# Dado efd_info_total[efd_tipo], tal que efd_tipo = 'EFD Contribuições', 'EFD ICMS_IPI', ... 
+		# Por exemplo: efd_info_total['EFD Contribuições'] = lista
+		# Cada efd_info_total[efd_tipo] guarda uma lista tal que cada item é um dicionário
+		# Cada dicionário possui informações de uma linha de SPED EFD ou informações Consolidadas
+		# lista = [
+		# 	{'coluna01':linha001_valor01,'coluna02':linha001_valor02, ..., 'coluna05':linha001_valor05}, 
+		#	{'coluna01':linha002_valor01,'coluna02':linha002_valor02, ..., 'coluna05':linha002_valor05},
+		#   ...
+		#	{'coluna01':linha100_valor01,'coluna02':linha100_valor02, ..., 'coluna05':linha100_valor05},
+		# ]
 
 		for efd_tipo in self.efd_info_total:
 
 			lista = self.efd_info_total[efd_tipo]
 			
-			for row_index, my_dict in enumerate(lista, 0):
+			for row_index, dicionario in enumerate(lista, 0):
 
 				# Após concatenar EFDs de meses distintos, refazer a contagem do número de linhas
-				if 'Linhas' in my_dict:
-					my_dict['Linhas'] = row_index + 2
+				if 'Linhas' in dicionario:
+					dicionario['Linhas'] = row_index + 2
 
 				num_aba   = row_index // split_number + 1 # parte inteira da divisão
 				num_linha = row_index  % split_number + 1 # módulo da divisão ou resto
@@ -91,24 +98,22 @@ class Exportar_Excel:
 					worksheet_name = worksheet.get_name()
 
 					# First, we find the length of the name of each column
-					largura_max[worksheet_name] = [len(c) for c in my_dict.keys()]
+					largura_max[worksheet_name] = [len(c) for c in dicionario.keys()]
 
 					# imprimir os nomes das colunas em (0,0)
-					worksheet.write_row(0, 0, my_dict.keys(), header_format)
+					worksheet.write_row(0, 0, dicionario.keys(), header_format)
 				
-				for column_index, (column_name, value) in enumerate(my_dict.items(), 0):
+				for column_index, (column_name, value) in enumerate(dicionario.items(), 0):
 
-					column_value = str(value)
-
-					if len(column_value) > 0:
-						worksheet.write(num_linha, column_index, myValue[column_name](column_value), myFormat[column_name])
+					if len( str(value) ) > 0:
+						worksheet.write(num_linha, column_index, myValue[column_name](value), myFormat[column_name])
 					else:
 						# Write cell with row/column notation.
-						worksheet.write(num_linha, column_index, column_value)
+						worksheet.write(num_linha, column_index, value)
 					
 					# reter largura máxima
-					if len(column_value) > largura_max[worksheet_name][column_index]:
-						largura_max[worksheet_name][column_index] = len(column_value)
+					if len( str(value) ) > largura_max[worksheet_name][column_index]:
+						largura_max[worksheet_name][column_index] = len( str(value) )
 		
 		# configurações finais de cada aba
 		for worksheet in workbook.worksheets():

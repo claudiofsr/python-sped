@@ -165,9 +165,10 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 
 	colunas_selecionadas = [ 
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-		'CST_ICMS', 'CFOP', 'ALIQ_ICMS',
-		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS',
-		'VL_PIS', 'VL_COFINS', 'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+		'CST_ICMS', 'CFOP', 'ALIQ_ICMS', 'Valor do Item', 
+		'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 'VL_ISS', 
+		'VL_BC_ICMS', 'VL_ICMS', 
+		# 'VL_ICMS_RECOLHER', 'VL_ICMS_RECOLHER_OA'
 	]
 
 	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
@@ -179,7 +180,8 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 
 	# if you want to operate on multiple columns, put them in a list like so:
 	cols = ['Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
-		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
+		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS', 
+		# 'VL_ICMS_RECOLHER', 'VL_ICMS_RECOLHER_OA'
 	]
 
 	# pass them to df.replace(), specifying each char and it's replacement:
@@ -251,11 +253,11 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	df = pd.DataFrame(info)
 
 	# if you want to operate on multiple columns, put them in a list like so:
-	cols = ['VL_BC_PIS','VL_BC_COFINS']
+	cols = ['ALIQ_PIS', 'ALIQ_COFINS', 'VL_BC_PIS','VL_BC_COFINS']
 
 	# pass them to df.replace(), specifying each char and it's replacement:
 	df[cols] = df[cols].replace({'[$%]': '', ',': '.','^$': 0}, regex=True)
-	df[cols] = df[cols].astype(float)
+	df[cols] = df[cols].astype(float, errors='ignore')
 
 	# reter/extrair os dois primeiros dígitos
 	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'(^\d{2})')
@@ -266,11 +268,28 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
 	], as_index=False).sum()
 
+	# how do I insert a column at a specific column index in pandas?
+	grupo.insert(loc=3, column='Tipo de Crédito', value='01: Alíquota Básica')
+
+	# https://kite.com/python/answers/how-to-change-values-in-a-pandas-dataframe-column-based-on-a-condition-in-python
+	condition1 = (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)  # | or condition
+	condition2 = grupo['CST_PIS_COFINS'].str.contains(r'^6[0-6]')   # 60 <= CST <= 66
+	condition3 = grupo['IND_ORIG_CRED'].str.contains(r'Importação')
+
+	grupo.loc[ condition1, 'Tipo de Crédito'] = '02: Alíquotas Diferenciadas'
+	grupo.loc[ condition2, 'Tipo de Crédito'] = '06: Presumido da Agroindústria'
+	grupo.loc[ condition3, 'Tipo de Crédito'] = '08: Importação'
+
 	grupo_total = grupo.groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
 	],as_index=False).sum()
 
 	grupo_total['NAT_BC_CRED'] = 'BC dos Creditos (Soma)'
+	grupo_total['Tipo de Crédito'] = None
+	grupo_total['IND_ORIG_CRED'] = None
+	grupo_total['CST_PIS_COFINS'] = None
+	grupo_total['ALIQ_PIS'] = None
+	grupo_total['ALIQ_COFINS'] = None
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo, grupo_total]
@@ -278,8 +297,8 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html
 	resultado.sort_values(by=[
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'IND_ORIG_CRED'
-	], ascending=[True,True,True,False], inplace=True,)
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'Tipo de Crédito'
+	], ascending=True, inplace=True,)
 
 	# Pandas Replace NaN with blank/empty string
 	resultado.replace(np.nan, '', regex=True, inplace=True)

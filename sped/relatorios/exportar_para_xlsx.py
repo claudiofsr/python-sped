@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
+python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
+python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
+date='16 de Março de 2020 (início: 10 de Janeiro de 2020)'
+download_url='https://github.com/claudiofsr/python-sped'
+license='MIT'
 
 import sys, itertools, re
 import xlsxwriter # pip install xlsxwriter
@@ -40,16 +43,18 @@ class Exportar_Excel:
 			'author':   '',
 			'manager':  '',
 			'company':  '',
-			'category': '',
+			'category': download_url,
 			'keywords': 'SPED (Sistema Público de Escrituração Digital), EFD Contribuições, EFD ICMS_IPI',
-			'comments': 'Created with XlsxWriter and Python Sped',
+			'comments': 'Created with XlsxWriter and Python Sped: ' + \
+						python_sped_author + ' & '+ python_sped_relatorios_author
 		})
 
 		# Set up some formatting
 		header_format = workbook.add_format({
-						'align':'center', 'valign':'vcenter', 
-						'bg_color':'#C5D9F1', 'text_wrap':True, 
-						'font_size':10})
+			'align':'center', 'valign':'vcenter', 
+			'bg_color':'#C5D9F1', 'text_wrap':True,
+			'font':'Calibri', 'font_size':9
+		})
 		
 		select_value = My_Switch(SPED_EFD_Info.registros_totais,verbose=self.verbose)
 		select_value.formatar_valores_das_colunas()
@@ -97,11 +102,13 @@ class Exportar_Excel:
 					# https://xlsxwriter.readthedocs.io/worksheet.html
 					worksheet_name = worksheet.get_name()
 
-					# First, we find the length of the name of each column
-					largura_max[worksheet_name] = [len(c) for c in dicionario.keys()]
-
 					# imprimir os nomes das colunas em (0,0)
 					worksheet.write_row(0, 0, dicionario.keys(), header_format)
+
+					# First, we find the length of the name of each column
+					largura_max[worksheet_name] = {}
+					for column_name in dicionario.keys():
+						largura_max[worksheet_name][column_name] = len(column_name)
 				
 				for column_index, (column_name, value) in enumerate(dicionario.items(), 0):
 
@@ -112,8 +119,8 @@ class Exportar_Excel:
 						worksheet.write(num_linha, column_index, value)
 					
 					# reter largura máxima
-					if len( str(value) ) > largura_max[worksheet_name][column_index]:
-						largura_max[worksheet_name][column_index] = len( str(value) )
+					if len( str(value) ) > largura_max[worksheet_name][column_name]:
+						largura_max[worksheet_name][column_name] = len( str(value) )
 		
 		# configurações finais de cada aba
 		for worksheet in workbook.worksheets():
@@ -122,17 +129,20 @@ class Exportar_Excel:
 			worksheet_name = worksheet.get_name()
 
 			# definindo a altura da primeira linha, row_index == 0
-			worksheet.set_row(0, 30)
+			worksheet.set_row(0, 40)
 
 			# Freeze pane on the top row.
 			worksheet.freeze_panes(1, 0)
 
 			# Ajustar largura das colunas com os valores máximos
-			largura_min = 4
-			for i, width in enumerate(largura_max[worksheet_name],0):
+			largura_min = 2
+			for index, (column_name, width) in enumerate(largura_max[worksheet_name].items(),0):
+				match_periodo = re.search(r'Período de Apuração', column_name, flags=re.IGNORECASE)
+				if match_periodo:
+					width = 12
 				if width > 120: # largura máxima
 					width = 120
-				worksheet.set_column(i, i, width + largura_min)
+				worksheet.set_column(index, index, width + largura_min)
 			
 			# Set the autofilter( $first_row, $first_col, $last_row, $last_col )
 			worksheet.autofilter(0, 0, 0, len(largura_max[worksheet_name]) - 1)

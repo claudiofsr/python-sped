@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
+python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
+python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
+date='16 de Março de 2020 (início: 10 de Janeiro de 2020)'
+download_url='https://github.com/claudiofsr/python-sped'
+license='MIT'
 
 import os, re, sys, itertools, csv
 from time import time, sleep
@@ -55,9 +58,12 @@ class SPED_EFD_Info:
 	registros_de_valor_do_item = ['VL_DOC', 'VL_BRT', 'VL_OPER', 'VL_OPR', 'VL_OPER_DEP', 'VL_BC_CRED', 
 		'VL_BC_EST', 'VL_TOT_REC', 'VL_REC_CAIXA', 'VL_REC_COMP', 'VL_REC', 'VL_ITEM']
 	
-	colunas_de_rateio = ['Tributado no MI',  'Não Tributado no MI',  'de Exportação']
+	colunas_de_rateio = [
+		'RBNC - Tributado no MI',  'RBNC - Não Tributado no MI',  'RBNC - de Exportação', 
+		'Receita Bruta Cumulativa'
+	]
 
-	colunas_adicionais = ['Tipo de Crédito']
+	colunas_adicionais = ['Trimestre do Período de Apuração', 'Tipo de Crédito']
 
 	# Imprimir as informações desta coluna, nesta ordem
 	colunas_selecionadas = [
@@ -80,7 +86,6 @@ class SPED_EFD_Info:
 
 	# https://www.geeksforgeeks.org/classmethod-in-python/
 	# https://realpython.com/instance-class-and-static-methods-demystified/
-	# A class method is a method which is bound to the class and not the object of the class.
 	@staticmethod
 	def natureza_da_bc_dos_creditos():
 		"""

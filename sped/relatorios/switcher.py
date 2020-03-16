@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '14 de Março de 2020 (início: 10 de Janeiro de 2020)'
+python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
+python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
+date='16 de Março de 2020 (início: 10 de Janeiro de 2020)'
+download_url='https://github.com/claudiofsr/python-sped'
+license='MIT'
 
 import sys, re
 from time import time, sleep
@@ -238,7 +241,7 @@ class My_Switch:
 
 			match_n_center = re.search(r'Linha|NUM_ITEM|CNPJ|CPF|EFD Tipo', nome_da_coluna, flags=re.IGNORECASE)
 			match_n_right  = re.search(r'NUM_DOC', nome_da_coluna, flags=re.IGNORECASE)
-			match_valor    = re.search(r'VL|Valor|Tributado|Exportação', nome_da_coluna, flags=re.IGNORECASE)
+			match_valor    = re.search(r'VL|Valor|RBNC|Receita Bruta', nome_da_coluna, flags=re.IGNORECASE)
 			match_aliquota = re.search(r'Aliq', nome_da_coluna, flags=re.IGNORECASE)
 			match_data     = re.search(r'Data|DT_', nome_da_coluna, flags=re.IGNORECASE)
 			match_center   = re.search(r'Período|Operação', nome_da_coluna, flags=re.IGNORECASE)

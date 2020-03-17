@@ -59,8 +59,11 @@ class SPED_EFD_Info:
 		'VL_BC_EST', 'VL_TOT_REC', 'VL_REC_CAIXA', 'VL_REC_COMP', 'VL_REC', 'VL_ITEM']
 	
 	colunas_de_rateio = [
-		'RBNC - Tributado no MI',  'RBNC - Não Tributado no MI',  'RBNC - de Exportação', 
-		'Receita Bruta Cumulativa'
+		'Classificação da Receita Bruta', 'Percentual de Rateio',
+		'Tributação da Receita Bruta',
+		'RBNC Trib MI', 'RBNC Não Trib MI', 'RBNC de Exportação', 'Receita Bruta Total',
+		'Crédito vinculado à Receita Tributado no MI', 'Crédito vinculado à Receita Não Tributado no MI',
+		'Crédito vinculado à Receita de Exportação', 'Crédito vinculado à Receita Bruta Cumulativa',
 	]
 
 	colunas_adicionais = ['Trimestre do Período de Apuração', 'Tipo de Crédito']

@@ -135,11 +135,14 @@ class Exportar_Excel:
 			worksheet.freeze_panes(1, 0)
 
 			# Ajustar largura das colunas com os valores máximos
-			largura_min = 2
+			largura_min = 4
 			for index, (column_name, width) in enumerate(largura_max[worksheet_name].items(),0):
-				match_periodo = re.search(r'Período de Apuração', column_name, flags=re.IGNORECASE)
+				match_periodo   = re.search(r'Período de Apuração', column_name, flags=re.IGNORECASE)
+				match_vinculado = re.search(r'Crédito vinculado', column_name, flags=re.IGNORECASE)
 				if match_periodo:
-					width = 12
+					width = 10
+				if match_vinculado:
+					width = 16
 				if width > 120: # largura máxima
 					width = 120
 				worksheet.set_column(index, index, width + largura_min)

@@ -62,7 +62,7 @@ class SPED_EFD_Info:
 		'Classificação da Receita Bruta', 'Percentual de Rateio',
 		'Tributação da Receita Bruta',
 		'RBNC Trib MI', 'RBNC Não Trib MI', 'RBNC de Exportação', 'Receita Bruta Total',
-		'Crédito vinculado à Receita Tributado no MI', 'Crédito vinculado à Receita Não Tributado no MI',
+		'Crédito vinculado à Receita Tributada no MI', 'Crédito vinculado à Receita Não Tributada no MI',
 		'Crédito vinculado à Receita de Exportação', 'Crédito vinculado à Receita Bruta Cumulativa',
 	]
 

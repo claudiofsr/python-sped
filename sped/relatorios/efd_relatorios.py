@@ -3,7 +3,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='17 de Março de 2020 (início: 10 de Janeiro de 2020)'
+date='22 de Março de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -360,56 +360,80 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
 	# -------------------------------- start --------------------------------- #
 
-	# RBNC Trib MI, CST = 01, 02, 03, 05
-	grupo01 = df[ 
+	colunas_info = ['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração']
+	
+	condicao01 = ( # RBNC Trib MI, CST = 01, 02, 03, 05
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 1) |
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 2) |
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 3) | 
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 5) 
-	].groupby([
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-	])['Valor do Item'].sum().reset_index()
-
-	# RBNC Não Trib MI, CST = 04, 06, 07, 09
-	grupo02 = df[ 
+	)
+	condicao02 = ( # RBNC Não Trib MI, CST = 04, 06, 07, 09
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 4) | 
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 6) |
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 7) | 
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 9) 
-	].groupby([
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-	])['Valor do Item'].sum().reset_index()
-
-	# RBNC de Exportação, CST = 08
-	grupo03 = df[ 
-		df['CST_PIS_COFINS'].astype(int, errors='ignore') == 8 
-	].groupby([
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-	])['Valor do Item'].sum().reset_index()
-
-	# Receita Bruta Total, CST = 01 a 09
-	grupo05 = df[
+	)	
+	condicao03 = ( # RBNC de Exportação, CST = 08
+		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 8)
+	)
+	condicao05 = ( # Receita Bruta Total, CST = 01 a 09	
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 1) &
 		(df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 9)
-	].groupby([
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'
-	])['Valor do Item'].sum().reset_index()
+	)
+
+	# RBNC Trib MI, CST = 01, 02, 03, 05
+	# Atribuir o valor de Zero para 'Filtro01' caso a condição01 não seja satisfeita
+	# DataFrame.where(self, cond, other=nan, inplace=False, ...)[source]
+	df['Filtro01'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro01'].where(condicao01, 0, inplace=True)
+	grupo01 = df.groupby(colunas_info)['Filtro01'].sum().reset_index()
+	del df['Filtro01']
+
+	#print(f'\ngrupo01:')
+	#print(f'{grupo01}\n')
+
+	# RBNC Não Trib MI, CST = 04, 06, 07, 09
+	# Atribuir o valor de Zero para 'Filtro02' caso a condição02 não seja satisfeita
+	df['Filtro02'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro02'].where(condicao02, 0, inplace=True)
+	grupo02 = df.groupby(colunas_info)['Filtro02'].sum().reset_index()
+	del df['Filtro02']
+
+	#print(f'\ngrupo02:')
+	#print(f'{grupo02}\n')
+
+	# RBNC de Exportação, CST = 08
+	# Atribuir o valor de Zero para 'Filtro03' caso a condição03 não seja satisfeita
+	df['Filtro03'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro03'].where(condicao03, 0, inplace=True)
+	grupo03 = df.groupby(colunas_info)['Filtro03'].sum().reset_index()
+	del df['Filtro03']
+
+	#print(f'\ngrupo03:')
+	#print(f'{grupo03}\n')
+
+	# Receita Bruta Total, CST = 01 a 09
+	# Atribuir o valor de Zero para 'Filtro05' caso a condição05 não seja satisfeita
+	df['Filtro05'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro05'].where(condicao05, 0, inplace=True)
+	grupo05 = df.groupby(colunas_info)['Filtro05'].sum().reset_index()
+	del df['Filtro05']
 
 	# https://stackoverflow.com/questions/11346283/renaming-columns-in-pandas
-	grupo01.rename({'Valor do Item': 'RBNC Trib MI'       }, axis=1, inplace=True)
-	grupo02.rename({'Valor do Item': 'RBNC Não Trib MI'   }, axis=1, inplace=True)
-	grupo03.rename({'Valor do Item': 'RBNC de Exportação' }, axis=1, inplace=True)
-	grupo05.rename({'Valor do Item': 'Receita Bruta Total'}, axis=1, inplace=True)
+	# grupo05.rename({'Filtro05': 'Receita Bruta Total'}, axis=1, inplace=True)
 
-	# Merging Dataframe on a given column name as join key
-	# https://thispointer.com/pandas-merge-dataframes-on-specific-columns-or-on-index-in-python-part-2/
+	#print(f'\ngrupo05:')
+	#print(f'{grupo05}\n')
 
-	grupoTT = grupo01.merge(grupo02, on=['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'])
-	grupoTT = grupoTT.merge(grupo03, on=['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'])
-	grupoTT = grupoTT.merge(grupo05, on=['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'])
-
-	#print(f'\ngrupoTT:')
-	#print(f'{grupoTT}\n')
+	grupo05['RBNC Trib MI'       ] = grupo01['Filtro01']
+	grupo05['RBNC Não Trib MI'   ] = grupo02['Filtro02']
+	grupo05['RBNC de Exportação' ] = grupo03['Filtro03'] 
+	grupo05['Receita Bruta Total'] = grupo05['Filtro05']
+	del grupo05['Filtro05']
+	
+	#print(f'\nB grupo05:')
+	#print(f'{grupo05}\n')
 
 	# -------------------------------- final --------------------------------- #
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
@@ -426,7 +450,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	for col in cols:
 		df[col] = df[col].replace({np.nan: 0, r'\D+': 0}, regex=True)
 
-	#print(f'\n4 {cols = } :')
+	#print(f'\n{cols = } :')
 	#print(f"{df[cols]}\n")
 
 	# Turn the GroupBy object into a regular dataframe and then reindex with reset_index()
@@ -448,7 +472,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	grupo['VL_COFINS'] = grupo['VL_BC_COFINS'] * grupo['ALIQ_COFINS'] / 100
 
 	# https://thispointer.com/pandas-merge-dataframes-on-specific-columns-or-on-index-in-python-part-2/
-	grupo = grupo.merge(grupoTT, on=['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração'])
+	grupo = grupo.merge(grupo05, on=colunas_info)
 
 	# Trimestres do Ano
 	# how do I insert a column at a specific column index in pandas?

@@ -328,6 +328,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	pd.options.display.float_format = '{: .2f}'.format
 	pd.options.display.max_rows = 100
 	pd.options.display.max_colwidth = 100
+	verbose = False
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
@@ -385,37 +386,40 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	# RBNC Trib MI, CST = 01, 02, 03, 05
 	# Atribuir o valor de Zero para 'Filtro01' caso a condição01 não seja satisfeita
 	# DataFrame.where(self, cond, other=nan, inplace=False, ...)[source]
-	df['Filtro01'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro01'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
 	df['Filtro01'].where(condicao01, 0, inplace=True)
 	grupo01 = df.groupby(colunas_info)['Filtro01'].sum().reset_index()
 	del df['Filtro01']
 
-	#print(f'\ngrupo01:')
-	#print(f'{grupo01}\n')
+	if verbose:
+		print(f'\ngrupo01 (RBNC Trib MI, CST = 01, 02, 03, 05):')
+		print(f'{grupo01}\n')
 
 	# RBNC Não Trib MI, CST = 04, 06, 07, 09
 	# Atribuir o valor de Zero para 'Filtro02' caso a condição02 não seja satisfeita
-	df['Filtro02'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro02'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
 	df['Filtro02'].where(condicao02, 0, inplace=True)
 	grupo02 = df.groupby(colunas_info)['Filtro02'].sum().reset_index()
 	del df['Filtro02']
 
-	#print(f'\ngrupo02:')
-	#print(f'{grupo02}\n')
+	if verbose:
+		print(f'\ngrupo02 (RBNC Não Trib MI, CST = 04, 06, 07, 09):')
+		print(f'{grupo02}\n')
 
 	# RBNC de Exportação, CST = 08
 	# Atribuir o valor de Zero para 'Filtro03' caso a condição03 não seja satisfeita
-	df['Filtro03'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro03'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
 	df['Filtro03'].where(condicao03, 0, inplace=True)
 	grupo03 = df.groupby(colunas_info)['Filtro03'].sum().reset_index()
 	del df['Filtro03']
 
-	#print(f'\ngrupo03:')
-	#print(f'{grupo03}\n')
+	if verbose:
+		print(f'\ngrupo03 (RBNC de Exportação, CST = 08):')
+		print(f'{grupo03}\n')
 
 	# Receita Bruta Total, CST = 01 a 09
 	# Atribuir o valor de Zero para 'Filtro05' caso a condição05 não seja satisfeita
-	df['Filtro05'] = df['Valor do Item'] # copiar coluna 'Valor do Item'
+	df['Filtro05'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
 	df['Filtro05'].where(condicao05, 0, inplace=True)
 	grupo05 = df.groupby(colunas_info)['Filtro05'].sum().reset_index()
 	del df['Filtro05']
@@ -423,8 +427,9 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	# https://stackoverflow.com/questions/11346283/renaming-columns-in-pandas
 	# grupo05.rename({'Filtro05': 'Receita Bruta Total'}, axis=1, inplace=True)
 
-	#print(f'\ngrupo05:')
-	#print(f'{grupo05}\n')
+	if verbose:
+		print(f'\ngrupo05 (Receita Bruta Total, CST = 01 a 09):')
+		print(f'{grupo05}\n')
 
 	grupo05['RBNC Trib MI'       ] = grupo01['Filtro01']
 	grupo05['RBNC Não Trib MI'   ] = grupo02['Filtro02']
@@ -432,8 +437,9 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	grupo05['Receita Bruta Total'] = grupo05['Filtro05']
 	del grupo05['Filtro05']
 	
-	#print(f'\nB grupo05:')
-	#print(f'{grupo05}\n')
+	if verbose:
+		print(f'\ngrupo05 (informações reunidas):')
+		print(f'{grupo05}\n')
 
 	# -------------------------------- final --------------------------------- #
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
@@ -449,9 +455,6 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 
 	for col in cols:
 		df[col] = df[col].replace({np.nan: 0, r'\D+': 0}, regex=True)
-
-	#print(f'\n{cols = } :')
-	#print(f"{df[cols]}\n")
 
 	# Turn the GroupBy object into a regular dataframe and then reindex with reset_index()
 	# http://queirozf.com/entries/pandas-dataframe-groupby-examples
@@ -587,13 +590,6 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	]).sum().reset_index()
 
 	grupo_total['NAT_BC_CRED'] = 'Créditos (Soma Total)'
-
-	# Excluir/limpar algumas somas indesejadas
-	#grupo_mensal['Tipo de Crédito'] = None
-	#grupo_mensal['IND_ORIG_CRED'] = None
-	#grupo_mensal['CST_PIS_COFINS'] = None
-	#grupo_mensal['ALIQ_PIS'] = None
-	#grupo_mensal['ALIQ_COFINS'] = None
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html
 	concatenar = [grupo, grupo_tipo_de_credito, grupo_mensal, grupo_trimestral, grupo_total]

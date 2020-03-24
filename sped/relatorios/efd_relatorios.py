@@ -114,16 +114,15 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 		# pass them to df.replace(), specifying each char and it's replacement:
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float)
-
-	# reter/extrair os dois primeiros dígitos
-	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'^(\d{2})')
+	
+	df['CST_PIS_COFINS'] = df['CST_PIS_COFINS'].astype(int, errors='ignore')
 
 	# CST de entradas e saídas
-	grupo_entra = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 50 ].groupby([
+	grupo_entra = df[ df['CST_PIS_COFINS'] >= 50 ].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
 	]).sum().reset_index()
 
-	grupo_saida = df[ df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 49 ].groupby([
+	grupo_saida = df[ df['CST_PIS_COFINS'] <= 49 ].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
 	]).sum().reset_index()
 
@@ -151,7 +150,7 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 
 	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
-	efd_info_total['Consolidacao EFD Contrib'] = resultado.to_dict('records')
+	efd_info_total['Consolidação EFD Contrib'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -228,7 +227,7 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_dict.html
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
-	efd_info_total['Consolidacao EFD ICMS_IPI'] = resultado.to_dict('records')
+	efd_info_total['Consolidação EFD ICMS_IPI'] = resultado.to_dict('records')
 
 	# How to print one pandas column without index?
 	resultado = resultado.to_string(index=False)
@@ -245,7 +244,7 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-		'CST_PIS_COFINS', 'NAT_BC_CRED', 'Valor do Item'
+		'CST_PIS_COFINS', 'Valor do Item'
 	]
 
 	info = [{key: my_dict[key] for key in my_dict if key in colunas_selecionadas} for my_dict in efd_info_mensal]
@@ -255,38 +254,31 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 	df['Valor do Item'] = df['Valor do Item'].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 	df['Valor do Item'] = df['Valor do Item'].astype(float, errors='ignore')
 
-	cols = ['CST_PIS_COFINS', 'NAT_BC_CRED']
-
-	for col in cols:
-		df[col] = df[col].astype(str, errors='ignore')
-		
-	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'^(\d{2})') # CST = 01 a 09 # .extract(r'^(\d{2})')
-	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].replace({np.nan: 0, r'\D+': 0}, regex=True) # or df[col] = df[col].fillna('')
+	df['CST_PIS_COFINS'] = df['CST_PIS_COFINS'].astype(str, errors='ignore')
 
 	### --- Receita Bruta para fins de Rateio --- ###
 	# -------------------- start ------------------ #
 
-	grupo_saida = df[ 
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 1) &
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 9)
-	].groupby([
+	condition0 = df['CST_PIS_COFINS'].str.contains(r'^0[1-9]') # CST = 01 a 09
+
+	grupo_saida = df[condition0].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
 	])['Valor do Item'].sum().reset_index()
 
 	# how do I insert a column at a specific column index in pandas?
-	grupo_saida.insert(loc=3, column='Tributação da Receita Bruta', value=0)
+	grupo_saida.insert(loc=3, column='Classificação da Receita Bruta', value=0)
 
 	# https://kite.com/python/answers/how-to-change-values-in-a-pandas-dataframe-column-based-on-a-condition-in-python
 	condition1 = grupo_saida['CST_PIS_COFINS'].str.contains(r'^0[1235]') # CST = 01, 02, 03, 05
 	condition2 = grupo_saida['CST_PIS_COFINS'].str.contains(r'^0[4679]') # CST = 04, 06, 07, 09
 	condition3 = grupo_saida['CST_PIS_COFINS'].str.contains(r'^08')      # CST = 08
 
-	grupo_saida.loc[ condition1, 'Tributação da Receita Bruta'] = '1 Receita Bruta Não Cumulativa - Tributada no Mercado Interno (soma CST 01, 02, 03 e 05)'
-	grupo_saida.loc[ condition2, 'Tributação da Receita Bruta'] = '2 Receita Bruta Não Cumulativa - Não Tributada no Mercado Interno (soma CST 04, 06, 07 e 09)'
-	grupo_saida.loc[ condition3, 'Tributação da Receita Bruta'] = '3 Receita Bruta Não Cumulativa de Exportação (CST 08)'
+	grupo_saida.loc[ condition1, 'Classificação da Receita Bruta'] = '1 Receita Bruta Não Cumulativa - Tributada no Mercado Interno (soma CST 01, 02, 03 e 05)'
+	grupo_saida.loc[ condition2, 'Classificação da Receita Bruta'] = '2 Receita Bruta Não Cumulativa - Não Tributada no Mercado Interno (soma CST 04, 06, 07 e 09)'
+	grupo_saida.loc[ condition3, 'Classificação da Receita Bruta'] = '3 Receita Bruta Não Cumulativa de Exportação (CST 08)'
 
 	grupo_receita = grupo_saida.groupby([
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'Tributação da Receita Bruta'
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'Classificação da Receita Bruta'
 	]).sum().reset_index() # .agg({'Valor do Item': 'sum'})
 	
 	# https://stackoverflow.com/questions/23377108/pandas-percentage-of-total-with-groupby
@@ -299,19 +291,19 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
 	])['Valor do Item'].sum().reset_index()
 
-	grupo_receita_soma['Tributação da Receita Bruta'] = '5 Receita Bruta Total (soma CST 01 a 09)'
+	grupo_receita_soma['Classificação da Receita Bruta'] = '5 Receita Bruta Total (soma CST 01 a 09)'
 	grupo_receita_soma['Percentual de Rateio'] = 100
 
 	concatenar = [grupo_receita, grupo_receita_soma]
 	receita_bruta = pd.concat(concatenar, axis=0, sort=False, ignore_index=True)
 	receita_bruta.sort_values(by=[
-		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'Tributação da Receita Bruta'
+		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'Classificação da Receita Bruta'
 	], ascending=True, inplace=True,)
 
 	# pass them to df.replace(), specifying each char and it's replacement:
-	receita_bruta['Tributação da Receita Bruta'] = receita_bruta['Tributação da Receita Bruta'].replace({r'^\d+\s*': ''}, regex=True)
+	receita_bruta['Classificação da Receita Bruta'] = receita_bruta['Classificação da Receita Bruta'].replace({r'^\d+\s*': ''}, regex=True)
 
-	efd_info_total['Rateio de Créditos'] = receita_bruta.to_dict('records')
+	efd_info_total['Receita Bruta'] = receita_bruta.to_dict('records')
 
 	# How to print one pandas column without index?
 	receita_bruta = receita_bruta.to_string(index=False)
@@ -328,7 +320,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	pd.options.display.float_format = '{: .2f}'.format
 	pd.options.display.max_rows = 100
 	pd.options.display.max_colwidth = 100
-	verbose = False
+	verbose = True
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
@@ -351,37 +343,24 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float, errors='ignore')
 
-	cols = ['CST_PIS_COFINS', 'NAT_BC_CRED']
-	
-	for col in cols:
-		df[col]=df[col].astype(str, errors='ignore')
-		df[col]=df[col].str.extract(r'^(\d{2})')
-		df[col]=df[col].replace({np.nan: 0, r'\D+': 0}, regex=True) # or df[col] = df[col].fillna('')
-
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
 	# -------------------------------- start --------------------------------- #
 
 	colunas_info = ['CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração']
 	
-	condicao01 = ( # RBNC Trib MI, CST = 01, 02, 03, 05
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 1) |
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 2) |
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 3) | 
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 5) 
-	)
-	condicao02 = ( # RBNC Não Trib MI, CST = 04, 06, 07, 09
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 4) | 
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 6) |
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 7) | 
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 9) 
-	)	
-	condicao03 = ( # RBNC de Exportação, CST = 08
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') == 8)
-	)
-	condicao05 = ( # Receita Bruta Total, CST = 01 a 09	
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 1) &
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 9)
-	)
+	# df['CST_PIS_COFINS'] e df['NAT_BC_CRED'] são strings de dois dígitos: '\d{2}'
+
+	# RBNC Trib MI, CST = 01, 02, 03, 05
+	condicao01 = df['CST_PIS_COFINS'].str.contains(r'^0[1235]')
+
+	# RBNC Não Trib MI, CST = 04, 06, 07, 09
+	condicao02 = df['CST_PIS_COFINS'].str.contains(r'^0[4679]')
+
+	 # RBNC de Exportação, CST = 08
+	condicao03 = df['CST_PIS_COFINS'].str.contains(r'^08')
+
+	# Receita Bruta Total, CST = 01 a 09	
+	condicao05 = df['CST_PIS_COFINS'].str.contains(r'^0[1-9]')
 
 	# RBNC Trib MI, CST = 01, 02, 03, 05
 	# Atribuir o valor de Zero para 'Filtro01' caso a condição01 não seja satisfeita
@@ -444,31 +423,22 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	# -------------------------------- final --------------------------------- #
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
 
-	# reter/extrair os dois primeiros dígitos
-	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.str.replace.html
+	# Créditos de PIS/COFINS: (50 <= CST <= 66) & (1 <= NAT_BC_CRED <= 18)
+	# CST_PIS_COFINS, Intervalo dos Créditos: (50 <= CST <= 56) & (60 <= CST <= 66)
+	# NAT_BC_CRED,    Intervalo da Base de Cálculo: 01 <= NAT_BC_CRED <= 18
 
-	# 01 <= NAT_BC_CRED <= 18
-	df['NAT_BC_CRED']=df['NAT_BC_CRED'].str.extract(r'^(\d{2})')
-	
-	# créditos de PIS/COFINS: 50 <= CST <= 66
-	df['CST_PIS_COFINS']=df['CST_PIS_COFINS'].str.extract(r'^(\d{2})')
-
-	for col in cols:
-		df[col] = df[col].replace({np.nan: 0, r'\D+': 0}, regex=True)
-
-	# Turn the GroupBy object into a regular dataframe and then reindex with reset_index()
-	# http://queirozf.com/entries/pandas-dataframe-groupby-examples
+	condition_CST = df['CST_PIS_COFINS'].str.contains(r'^[56][0-6]')
+	condition_NAT = df['NAT_BC_CRED'   ].str.contains(r'^0[1-9]|1[0-8]')
 
 	# Créditos de PIS/COFINS: (50 <= CST <= 66) & (1 <= NAT_BC_CRED <= 18)
-	grupo = df[
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') >= 50) & 
-		(df['CST_PIS_COFINS'].astype(int, errors='ignore') <= 66) &
-		(df['NAT_BC_CRED'   ].astype(int, errors='ignore') >=  1) & 
-		(df['NAT_BC_CRED'   ].astype(int, errors='ignore') <= 18)
-	].groupby([
+	grupo = df[condition_CST & condition_NAT].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
 		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
 	]).sum().reset_index()
+
+	if verbose:
+		print(f'\ngrupo [(50 <= CST <= 66) & (1 <= NAT_BC_CRED <= 18)]:')
+		print(f'{grupo}\n')
 
 	# corrigindo, calculando valores
 	grupo['VL_PIS'   ] = grupo['VL_BC_PIS'   ] * grupo['ALIQ_PIS'   ] / 100
@@ -497,11 +467,10 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	grupo.insert(loc=4, column='Tipo de Crédito', value='01: Alíquota Básica')
 
 	# https://kite.com/python/answers/how-to-change-values-in-a-pandas-dataframe-column-based-on-a-condition-in-python
-	condition2 =  (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)    # | or condition
-	condition6 = ((grupo['CST_PIS_COFINS'].astype(int, errors='ignore') >= 60) &  # 60 <= CST <= 66
-				  (grupo['CST_PIS_COFINS'].astype(int, errors='ignore') <= 66))
+	condition2 = (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)    # | or condition
+	condition6 = grupo['CST_PIS_COFINS'].str.contains(r'^6[0-6]')                # 60 <= CST <= 66
 	condition8 = grupo['IND_ORIG_CRED'].str.contains(r'Importação')
-	condition9 = grupo['NAT_BC_CRED'].astype(int, errors='ignore') == 18          # NAT_BC_CRED = 18
+	condition9 = grupo['NAT_BC_CRED'].str.contains(r'^18')                       # NAT_BC_CRED = 18
 
 	grupo.loc[ condition2, 'Tipo de Crédito'] = '02: Alíquotas Diferenciadas'
 	grupo.loc[ condition6, 'Tipo de Crédito'] = '06: Presumido da Agroindústria'
@@ -757,10 +726,10 @@ def main():
 			efd_info_total['EFD ICMS_IPI'] = efd_info_mensal_efd_icmsipi
 
 	if len(efd_info_mensal_efd_contrib) > 0:
-		print(f'\nClassificação da Receita Bruta para fins de Rateio de Créditos:')
-		classificacao_da_receita_bruta(efd_info_mensal_efd_contrib, efd_info_total)
 		print('\nConsolidação das Operações Segregadas por CST (EFD Contribuições):')
 		consolidacao_das_operacoes_por_cst(efd_info_mensal_efd_contrib, efd_info_total)
+		print(f'\nClassificação da Receita Bruta para fins de Rateio de Créditos:')
+		classificacao_da_receita_bruta(efd_info_mensal_efd_contrib, efd_info_total)
 		print('\nBase de Cálculos dos Créditos (EFD Contribuições):')
 		consolidacao_das_operacoes_por_natureza(efd_info_mensal_efd_contrib, efd_info_total)
 	

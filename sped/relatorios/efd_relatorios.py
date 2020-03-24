@@ -320,7 +320,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	pd.options.display.float_format = '{: .2f}'.format
 	pd.options.display.max_rows = 100
 	pd.options.display.max_colwidth = 100
-	verbose = True
+	verbose = False
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',

@@ -62,7 +62,7 @@ class Exportar_Excel:
 
 		select_format = My_Switch(SPED_EFD_Info.registros_totais,verbose=self.verbose)
 		select_format.formatar_colunas_do_arquivo_excel(workbook)
-		myFormat = select_format.dicionario
+		myColumn = select_format.dicionario
 
 		# Para cada efd_tipo, obter a largura máxima de cada coluna
 		largura_max = {}
@@ -112,15 +112,19 @@ class Exportar_Excel:
 				
 				for column_index, (column_name, value) in enumerate(dicionario.items(), 0):
 
+					valor_formatado = value
+
 					if len( str(value) ) > 0:
-						worksheet.write(num_linha, column_index, myValue[column_name](value), myFormat[column_name])
+						valor_formatado  = myValue[column_name](value)
+						coluna_formatada = myColumn[column_name]
+						worksheet.write(num_linha, column_index, valor_formatado, coluna_formatada)
 					else:
 						# Write cell with row/column notation.
 						worksheet.write(num_linha, column_index, value)
 					
 					# reter largura máxima
-					if len( str(value) ) > largura_max[worksheet_name][column_name]:
-						largura_max[worksheet_name][column_name] = len( str(value) )
+					if len( str(valor_formatado) ) > largura_max[worksheet_name][column_name]:
+						largura_max[worksheet_name][column_name] = len( str(valor_formatado) )
 		
 		# configurações finais de cada aba
 		for worksheet in workbook.worksheets():

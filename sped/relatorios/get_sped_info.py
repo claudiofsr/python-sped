@@ -104,7 +104,7 @@ class SPED_EFD_Info:
 				2403,2652,3102,3251,3652,
 			]:
 			# Código 01 - CFOP de 'Aquisição de Bens para Revenda'
-			info[cfop] = 1
+			info[cfop] = '01'
 		for cfop in [
 				1101,1111,1116,1120,1122,1126,1128,1132,
 				1135,1401,1407,1456,1556,1651,1653,2101,
@@ -113,20 +113,20 @@ class SPED_EFD_Info:
 				3128,3556,3651,3653,
 			]:
 			# Código 02 - CFOP de 'Aquisição de Bens Utilizados como Insumo'
-			info[cfop] = 2
+			info[cfop] = '02'
 		for cfop in [1124,1125,1933,2124,2125,2933]:
 			# Código 03 - CFOP de 'Aquisição de Serviços Utilizados como Insumos'
-			info[cfop] = 3
+			info[cfop] = '03'
 		for cfop in [
 				1201,1202,1203,1204,1206,1207,1215,1216,
 				1410,1411,1660,1661,1662,2201,2202,2206,
 				2207,2215,2216,2410,2411,2660,2661,2662,
 			]:
 			# Código 12 - CFOP de 'Devolução de Vendas Sujeitas à Incidência Não-Cumulativa'
-			info[cfop] = 12
+			info[cfop] = '12'
 		for cfop in [1922,2922]:
 			# Código 13 - CFOP de 'Outras Operações com Direito a Crédito'
-			info[cfop] = 13
+			info[cfop] = '13'
 		
 		return info
 	
@@ -165,7 +165,7 @@ class SPED_EFD_Info:
 	def imprimir_arquivo_csv(self):
 
 		select_object = My_Switch(type(self).registros_totais,verbose=self.verbose)
-		select_object.formatar_colunas_do_arquivo_csv()
+		select_object.formatar_valores_entrada()
 		self.myDict = select_object.dicionario
 						
 		self.objeto_sped.readfile(self.file_path, codificacao=self.encoding, verbose=self.verbose)

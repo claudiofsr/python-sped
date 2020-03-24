@@ -99,7 +99,7 @@ class My_Switch:
 		except:
 			# print(inst)
 			return natureza_bc
-	
+
 	@staticmethod
 	def formatar_tipo(tipo_do_item):
 		try:
@@ -149,14 +149,13 @@ class My_Switch:
 		self.verbose = verbose
 		self.dicionario = {}
 	
-	def formatar_colunas_do_arquivo_csv(self):
+	def formatar_valores_entrada(self):
 
 		for nome_da_coluna in self.lista_de_colunas:
 			
 			match_linha = re.search(r'^Linhas', nome_da_coluna, flags=re.IGNORECASE)
 			match_reg   = re.search(r'^REG', nome_da_coluna, flags=re.IGNORECASE)
 			match_cfop  = re.search(r'^CFOP', nome_da_coluna, flags=re.IGNORECASE)
-			match_nbc   = re.search(r'NAT_BC_CRED', nome_da_coluna, flags=re.IGNORECASE)
 			match_tipo  = re.search(r'TIPO_ITEM', nome_da_coluna, flags=re.IGNORECASE)
 			match_mod   = re.search(r'COD_MOD', nome_da_coluna, flags=re.IGNORECASE)
 			match_data  = re.search(r'^DT_|Data', nome_da_coluna, flags=re.IGNORECASE)
@@ -164,9 +163,6 @@ class My_Switch:
 			match_ncm   = re.search(r'COD_NCM', nome_da_coluna, flags=re.IGNORECASE)
 			match_cnpj  = re.search(r'CNPJ', nome_da_coluna, flags=re.IGNORECASE)
 			match_cpf   = re.search(r'CPF',  nome_da_coluna, flags=re.IGNORECASE)
-
-			match_cst_contib = re.search(r'^CST_(PIS|COFINS)|CST_PIS_COFINS', nome_da_coluna, flags=re.IGNORECASE)
-			match_cst_icms   = re.search(r'^CST_ICMS', nome_da_coluna, flags=re.IGNORECASE)
 
 			# https://www.geeksforgeeks.org/switch-case-in-python-replacement/
 			# Ao invés de usar vários 'if/elif/elif/elif/.../else', usar o dict switcher[chave] = valor, 
@@ -176,11 +172,8 @@ class My_Switch:
 				bool(match_linha):      self.formatar_linhas,
 				bool(match_reg):        self.formatar_registro,
 				bool(match_cfop):       self.formatar_cfop,
-				bool(match_nbc):        self.formatar_nbc,
 				bool(match_tipo):       self.formatar_tipo,
 				bool(match_mod):        self.formatar_mod,
-				bool(match_cst_contib): self.formatar_cst_contrib,
-				bool(match_cst_icms):   self.formatar_cst_icms,
 				bool(match_data):       CampoData.formatar,
 				bool(match_chave):      CampoChaveEletronica.formatar,
 				bool(match_ncm):        CampoNCM.formatar,
@@ -209,15 +202,22 @@ class My_Switch:
 			match_aliquota = re.search(r'Aliq', nome_da_coluna, flags=re.IGNORECASE)
 			match_data     = re.search(r'Data|DT_', nome_da_coluna, flags=re.IGNORECASE)
 			match_mes      = re.search(r'^Mês do Período', nome_da_coluna, flags=re.IGNORECASE)
+			match_nbc      = re.search(r'NAT_BC_CRED', nome_da_coluna, flags=re.IGNORECASE)
+
+			match_cst_contib = re.search(r'^CST_(PIS|COFINS)|CST_PIS_COFINS', nome_da_coluna, flags=re.IGNORECASE)
+			match_cst_icms   = re.search(r'^CST_ICMS', nome_da_coluna, flags=re.IGNORECASE)
 			
 			# Estes vários testes de condições/switcher são executados apenas uma vez na execução do método/função.
 			switcher = {
-				bool(match_n_center):  self.formatar_valores_decimais,
-				bool(match_n_right):   self.formatar_valores_decimais,
-				bool(match_valor):     self.formatar_valores_decimais,
-				bool(match_aliquota):  self.formatar_valores_decimais,
-				bool(match_data):      self.formatar_datas,
-				bool(match_mes):       self.formatar_mes_usando_tabelas,
+				bool(match_n_center):   self.formatar_valores_decimais,
+				bool(match_n_right):    self.formatar_valores_decimais,
+				bool(match_valor):      self.formatar_valores_decimais,
+				bool(match_aliquota):   self.formatar_valores_decimais,
+				bool(match_data):       self.formatar_datas,
+				bool(match_mes):        self.formatar_mes_usando_tabelas,
+				bool(match_nbc):        self.formatar_nbc,
+				bool(match_cst_contib): self.formatar_cst_contrib,
+				bool(match_cst_icms):   self.formatar_cst_icms,
 			}
 
 			# Caso não ocorra nenhum match, retornar default value = self.funcao_identidade

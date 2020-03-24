@@ -3,7 +3,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='22 de Março de 2020 (início: 10 de Janeiro de 2020)'
+date='24 de Março de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -105,12 +105,12 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	df = pd.DataFrame(info)
 
 	# if you want to operate on multiple columns, put them in a list like so:
-	cols = [
+	colunas_numericas = [
 		'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
 		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS',
 	]
 
-	for col in cols:
+	for col in colunas_numericas:
 		# pass them to df.replace(), specifying each char and it's replacement:
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float)
@@ -145,9 +145,6 @@ def consolidacao_das_operacoes_por_cst(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	#resultado.reset_index(drop=True, inplace=True)
 
-	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
-	# resultado.style.to_excel('consolidacao_das_operacoes_por_cst.xlsx', engine='xlsxwriter', sheet_name='EFD Contribuições', index=False)
-
 	# https://stackoverflow.com/questions/26716616/convert-a-pandas-dataframe-to-a-dictionary
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
 	efd_info_total['Consolidação EFD Contrib'] = resultado.to_dict('records')
@@ -178,12 +175,12 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	df = pd.DataFrame(info)
 
 	# if you want to operate on multiple columns, put them in a list like so:
-	cols = ['Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
+	colunas_numericas = ['Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 'VL_PIS', 'VL_COFINS', 
 		'VL_ISS', 'VL_BC_ICMS', 'VL_ICMS', 
 		# 'VL_ICMS_RECOLHER', 'VL_ICMS_RECOLHER_OA'
 	]
 
-	for col in cols:
+	for col in colunas_numericas:
 		# pass them to df.replace(), specifying each char and it's replacement:
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float)
@@ -222,9 +219,6 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 	resultado.replace(np.nan, '', regex=True, inplace=True)
 	#resultado.reset_index(drop=True, inplace=True)
 
-	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.io.formats.style.Styler.to_excel.html
-	# resultado.style.to_excel('consolidacao_das_operacoes_por_cfop.xlsx', engine='xlsxwriter', sheet_name='EFD ICMS_IPI', index=False)
-
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_dict.html
 	# records - each row becomes a dictionary where key is column name and value is the data in the cell
 	efd_info_total['Consolidação EFD ICMS_IPI'] = resultado.to_dict('records')
@@ -241,6 +235,7 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 	pd.options.display.float_format = '{: .2f}'.format
 	pd.options.display.max_rows = 100
 	pd.options.display.max_colwidth = 100
+	verbose = False
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
@@ -254,8 +249,6 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 	df['Valor do Item'] = df['Valor do Item'].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 	df['Valor do Item'] = df['Valor do Item'].astype(float, errors='ignore')
 
-	df['CST_PIS_COFINS'] = df['CST_PIS_COFINS'].astype(str, errors='ignore')
-
 	### --- Receita Bruta para fins de Rateio --- ###
 	# -------------------- start ------------------ #
 
@@ -264,6 +257,10 @@ def classificacao_da_receita_bruta(efd_info_mensal, efd_info_total):
 	grupo_saida = df[condition0].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração', 'CST_PIS_COFINS'
 	])['Valor do Item'].sum().reset_index()
+
+	if verbose:
+		print(f'\ngrupo_saida (CST = 01 a 09):')
+		print(f'{grupo_saida}\n')
 
 	# how do I insert a column at a specific column index in pandas?
 	grupo_saida.insert(loc=3, column='Classificação da Receita Bruta', value=0)
@@ -333,12 +330,12 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 
 	df = pd.DataFrame(info)
 
-	cols = [
+	colunas_numericas = [
 		'ALIQ_PIS', 'ALIQ_COFINS', 'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 
 		'VL_PIS', 'VL_COFINS'
 	]
 
-	for col in cols:
+	for col in colunas_numericas:
 		# pass them to df.replace(), specifying each char and it's replacement:
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float, errors='ignore')
@@ -360,7 +357,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	condicao03 = df['CST_PIS_COFINS'].str.contains(r'^08')
 
 	# Receita Bruta Total, CST = 01 a 09	
-	condicao05 = df['CST_PIS_COFINS'].str.contains(r'^0[1-9]')
+	condicaoRB = df['CST_PIS_COFINS'].str.contains(r'^0[1-9]')
 
 	# RBNC Trib MI, CST = 01, 02, 03, 05
 	# Atribuir o valor de Zero para 'Filtro01' caso a condição01 não seja satisfeita
@@ -397,28 +394,28 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		print(f'{grupo03}\n')
 
 	# Receita Bruta Total, CST = 01 a 09
-	# Atribuir o valor de Zero para 'Filtro05' caso a condição05 não seja satisfeita
-	df['Filtro05'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
-	df['Filtro05'].where(condicao05, 0, inplace=True)
-	grupo05 = df.groupby(colunas_info)['Filtro05'].sum().reset_index()
-	del df['Filtro05']
+	# Atribuir o valor de Zero para 'FiltroRB' caso a condiçãoRB não seja satisfeita
+	df['FiltroRB'] = df['Valor do Item'].copy() # copiar coluna 'Valor do Item'
+	df['FiltroRB'].where(condicaoRB, 0, inplace=True)
+	grupoRB = df.groupby(colunas_info)['FiltroRB'].sum().reset_index()
+	del df['FiltroRB']
 
 	# https://stackoverflow.com/questions/11346283/renaming-columns-in-pandas
-	# grupo05.rename({'Filtro05': 'Receita Bruta Total'}, axis=1, inplace=True)
+	# grupoRB.rename({'FiltroRB': 'Receita Bruta Total'}, axis=1, inplace=True)
 
 	if verbose:
-		print(f'\ngrupo05 (Receita Bruta Total, CST = 01 a 09):')
-		print(f'{grupo05}\n')
+		print(f'\ngrupoRB (Receita Bruta Total, CST = 01 a 09):')
+		print(f'{grupoRB}\n')
 
-	grupo05['RBNC Trib MI'       ] = grupo01['Filtro01']
-	grupo05['RBNC Não Trib MI'   ] = grupo02['Filtro02']
-	grupo05['RBNC de Exportação' ] = grupo03['Filtro03'] 
-	grupo05['Receita Bruta Total'] = grupo05['Filtro05']
-	del grupo05['Filtro05']
+	grupoRB['RBNC Trib MI'       ] = grupo01['Filtro01']
+	grupoRB['RBNC Não Trib MI'   ] = grupo02['Filtro02']
+	grupoRB['RBNC de Exportação' ] = grupo03['Filtro03'] 
+	grupoRB['Receita Bruta Total'] = grupoRB['FiltroRB']
+	del grupoRB['FiltroRB']
 	
 	if verbose:
-		print(f'\ngrupo05 (informações reunidas):')
-		print(f'{grupo05}\n')
+		print(f'\ngrupoRB (informações reunidas):')
+		print(f'{grupoRB}\n')
 
 	# -------------------------------- final --------------------------------- #
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
@@ -445,7 +442,11 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	grupo['VL_COFINS'] = grupo['VL_BC_COFINS'] * grupo['ALIQ_COFINS'] / 100
 
 	# https://thispointer.com/pandas-merge-dataframes-on-specific-columns-or-on-index-in-python-part-2/
-	grupo = grupo.merge(grupo05, on=colunas_info)
+	grupo = grupo.merge(grupoRB, on=colunas_info)
+
+	if verbose:
+		print(f'\ngrupo [(50 <= CST <= 66) & (1 <= NAT_BC_CRED <= 18)] e Rateio:')
+		print(f'{grupo}\n')
 
 	# Trimestres do Ano
 	# how do I insert a column at a specific column index in pandas?

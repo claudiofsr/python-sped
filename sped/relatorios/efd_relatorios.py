@@ -186,10 +186,10 @@ def consolidacao_das_operacoes_por_cfop(efd_info_mensal, efd_info_total):
 		df[col] = df[col].astype(float)
 
 	# reter/extrair os três primeiros dígitos
-	df['CST_ICMS']=df['CST_ICMS'].str.extract(r'^(\d{3})')
+	df['CST_ICMS'] = df['CST_ICMS'].str.extract(r'^(\d{3})')
 
 	# reter/extrair os quatro primeiros dígitos
-	df['CFOP']=df['CFOP'].str.extract(r'^(\d{4})')
+	df['CFOP'] = df['CFOP'].str.extract(r'^(\d{4})')
 
 	# CFOP de entradas e saídas
 	grupo_entra = df[ df['CFOP'].astype(int, errors='ignore') <  4000 ].groupby([
@@ -340,6 +340,14 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		df[col] = df[col].replace({r'[R$%]':'', r'^\s*$': 0, ',':'.'}, regex=True)
 		df[col] = df[col].astype(float, errors='ignore')
 
+	colunas_texto = ['CST_PIS_COFINS', 'NAT_BC_CRED'] # '2 digit' string
+
+	for col in colunas_texto:
+		# how-can-i-remove-all-non-numeric-characters
+		df[col] = df[col].str.extract(r'^(\d{2})', expand=False)
+		# replace all the NaN values with ''
+		df[col].replace(np.nan, '', regex=True, inplace=True)
+
 	### --- Apresentação dos tipos de Receita Bruta em colunas distintas --- ###
 	# -------------------------------- start --------------------------------- #
 
@@ -468,10 +476,10 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	grupo.insert(loc=4, column='Tipo de Crédito', value='01: Alíquota Básica')
 
 	# https://kite.com/python/answers/how-to-change-values-in-a-pandas-dataframe-column-based-on-a-condition-in-python
-	condition2 = (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)    # | or condition
-	condition6 = grupo['CST_PIS_COFINS'].str.contains(r'^6[0-6]')                # 60 <= CST <= 66
+	condition2 = (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)  # | or condition
+	condition6 = grupo['CST_PIS_COFINS'].str.contains(r'^6[0-6]')              # 60 <= CST <= 66
 	condition8 = grupo['IND_ORIG_CRED'].str.contains(r'Importação')
-	condition9 = grupo['NAT_BC_CRED'].str.contains(r'^18')                       # NAT_BC_CRED = 18
+	condition9 = grupo['NAT_BC_CRED'].str.contains(r'^18')                     # NAT_BC_CRED = 18
 
 	grupo.loc[ condition2, 'Tipo de Crédito'] = '02: Alíquotas Diferenciadas'
 	grupo.loc[ condition6, 'Tipo de Crédito'] = '06: Presumido da Agroindústria'
@@ -532,6 +540,13 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		grupo.loc[ condition56, 'Crédito vinculado à Receita Não Tributada no MI'] = grupo['VL_BC_COFINS'] * grupo['RBNC Não Trib MI'  ] / grupo['Receita Bruta Total']
 		grupo.loc[ condition56, 'Crédito vinculado à Receita de Exportação'      ] = grupo['VL_BC_COFINS'] * grupo['RBNC de Exportação'] / grupo['Receita Bruta Total']
 		#grupo.loc[ condition56, 'Crédito vinculado à Receita Bruta Cumulativa'  ] = 0
+
+		# Divisão por Zero
+		# https://stackoverflow.com/questions/38032817/dividing-one-dataframe-column-by-another-division-by-zero/46942969
+		grupo.loc[ condition56, 'Crédito vinculado à Receita Tributada no MI'    ].replace([np.nan, np.inf, -np.inf], 0)
+		grupo.loc[ condition56, 'Crédito vinculado à Receita Não Tributada no MI'].replace([np.nan, np.inf, -np.inf], 0)
+		grupo.loc[ condition56, 'Crédito vinculado à Receita de Exportação'      ].replace([np.nan, np.inf, -np.inf], 0)
+		#grupo.loc[ condition56, 'Crédito vinculado à Receita Bruta Cumulativa'  ].replace([np.nan, np.inf, -np.inf], 0)
 	
 	# Formatting numeric columns with a specified number of decimal digits
 	grupo['ALIQ_PIS'   ]=grupo['ALIQ_PIS'   ].map('{: .4f}'.format, na_action='ignore')

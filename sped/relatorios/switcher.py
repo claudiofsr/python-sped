@@ -234,6 +234,7 @@ class My_Switch:
 		format_n_right  = workbook.add_format({'num_format': '0', 'align':'right'})
 		format_valor    = workbook.add_format({'num_format': '#,##0.00', 'align':'right'})
 		format_aliquota = workbook.add_format({'num_format': '#,##0.0000', 'align':'center'})
+		format_percento = workbook.add_format({'num_format': '#,##0.0000', 'align':'right'})
 		format_data     = workbook.add_format({'num_format': 'dd/mm/yyyy', 'align':'center'})
 		format_center   = workbook.add_format({'align':'center'})
 
@@ -243,6 +244,7 @@ class My_Switch:
 			match_n_right  = re.search(r'NUM_DOC', nome_da_coluna, flags=re.IGNORECASE)
 			match_valor    = re.search(r'VL|Valor|RBNC|Receita', nome_da_coluna, flags=re.IGNORECASE)
 			match_aliquota = re.search(r'Aliq|Percentual', nome_da_coluna, flags=re.IGNORECASE)
+			match_percento = re.search(r'Percentual', nome_da_coluna, flags=re.IGNORECASE)
 			match_data     = re.search(r'Data|DT_', nome_da_coluna, flags=re.IGNORECASE)
 			match_center   = re.search(r'Período|Operação', nome_da_coluna, flags=re.IGNORECASE)
 
@@ -252,6 +254,7 @@ class My_Switch:
 				bool(match_n_right):   format_n_right,
 				bool(match_valor):     format_valor,
 				bool(match_aliquota):  format_aliquota,
+				bool(match_percento):  format_percento,
 				bool(match_data):      format_data,
 				bool(match_center):    format_center,
 			}

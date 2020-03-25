@@ -104,7 +104,7 @@ class SPED_EFD_Info:
 				2403,2652,3102,3251,3652,
 			]:
 			# Código 01 - CFOP de 'Aquisição de Bens para Revenda'
-			info[cfop] = '01'
+			info[cfop] = '01' # padronizar: string de dois dígitos
 		for cfop in [
 				1101,1111,1116,1120,1122,1126,1128,1132,
 				1135,1401,1407,1456,1556,1651,1653,2101,

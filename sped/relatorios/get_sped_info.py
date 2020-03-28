@@ -2,7 +2,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='16 de Março de 2020 (início: 10 de Janeiro de 2020)'
+date='28 de Março de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -59,11 +59,21 @@ class SPED_EFD_Info:
 		'VL_BC_EST', 'VL_TOT_REC', 'VL_REC_CAIXA', 'VL_REC_COMP', 'VL_REC', 'VL_ITEM']
 	
 	colunas_de_rateio = [
-		'Classificação da Receita Bruta', 'Percentual de Rateio',
-		'Tributação da Receita Bruta',
-		'RBNC Trib MI', 'RBNC Não Trib MI', 'RBNC de Exportação', 'Receita Bruta Total',
-		'Crédito vinculado à Receita Tributada no MI', 'Crédito vinculado à Receita Não Tributada no MI',
-		'Crédito vinculado à Receita de Exportação', 'Crédito vinculado à Receita Bruta Cumulativa',
+		'Classificação da Receita Bruta', 'Percentual de Rateio dos Créditos',
+		'RBNC Trib MI', 'RBNC Não Trib MI', 'RBNC de Exportação',
+		'Receita Bruta Total',
+		'Base de Cálculo dos Créditos vinculada à Receita Tributada no MI', 
+		'Base de Cálculo dos Créditos vinculada à Receita Não Tributada no MI',
+		'Base de Cálculo dos Créditos vinculada à Receita de Exportação', 
+		'Base de Cálculo dos Créditos vinculada à Receita Bruta Cumulativa',
+		'Crédito de PIS/PASEP vinculado à Receita Tributada no MI', 
+		'Crédito de PIS/PASEP vinculado à Receita Não Tributada no MI',
+		'Crédito de PIS/PASEP vinculado à Receita de Exportação', 
+		'Crédito de PIS/PASEP vinculado à Receita Bruta Cumulativa',
+		'Crédito de COFINS vinculado à Receita Tributada no MI',
+		'Crédito de COFINS vinculado à Receita Não Tributada no MI',
+		'Crédito de COFINS vinculado à Receita de Exportação', 
+		'Crédito de COFINS vinculado à Receita Bruta Cumulativa',
 	]
 
 	colunas_adicionais = ['Trimestre do Período de Apuração', 'Tipo de Crédito']

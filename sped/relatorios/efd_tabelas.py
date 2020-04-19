@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 Autor = 'Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
-Data  = '21 de Fevereiro de 2020 (início: 10 de Janeiro de 2020)'
+Data  = '19 de Abril de 2020 (início: 10 de Janeiro de 2020)'
 
 class EFD_Tabelas:
 	"""
@@ -30,6 +30,20 @@ class EFD_Tabelas:
 		'04': 'Contas de resultado',
 		'05': 'Contas de compensação',
 		'09': 'Outras',
+	}
+
+	# 4.3.6 - Tabela Código de Tipo de Crédito
+	tabela_tipo_de_credito = {
+		'01': 'Alíquota Básica',
+		'02': 'Alíquotas Diferenciadas',
+		'03': 'Alíquota por Unidade de Produto',
+		'04': 'Estoque de Abertura',
+		'05': 'Aquisição Embalagens para Revenda',
+		'06': 'Presumido da Agroindústria',
+		'07': 'Outros Créditos Presumidos',
+		'08': 'Importação',
+		'09': 'Atividade Imobiliária',
+		'99': 'Outros',
 	}
 
 	# Fonte: GUIA PRÁTICO DA EFD Contribuicoes - PIS e COFINS

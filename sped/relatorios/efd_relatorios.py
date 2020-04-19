@@ -3,7 +3,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='28 de Março de 2020 (início: 10 de Janeiro de 2020)'
+date='19 de Abril de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -53,10 +53,10 @@ def get_sped_info(numero_do_arquivo, sped_file_path, lista_de_arquivos):
 	codificacao = lista_de_arquivos.informations[sped_file_path]['codificação']
 	
 	# Instantiate an object of type SPED_EFD_Info
-	csv_file = SPED_EFD_Info(sped_file_path, numero_do_arquivo, encoding=codificacao, efd_tipo=tipo_da_efd, verbose=False)
-	csv_file.imprimir_arquivo_csv()
+	sped_file = SPED_EFD_Info(sped_file_path, numero_do_arquivo, encoding=codificacao, efd_tipo=tipo_da_efd, verbose=False)
+	sped_file.obter_info_dos_itens()
 
-	return csv_file.efd_info_mensal # lista de dicionários
+	return sped_file.efd_info_mensal # lista de dicionários
 
 def make_target_name(arquivos_escolhidos):
 	data_ini = {}
@@ -321,7 +321,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	
 	colunas_selecionadas = [
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 
+		'Tipo de Crédito', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 
 		'NAT_BC_CRED', 'Valor do Item', 'VL_BC_PIS','VL_BC_COFINS', 
 		'VL_PIS', 'VL_COFINS',
 	]
@@ -445,7 +445,7 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	# Créditos de PIS/COFINS: (50 <= CST <= 66) & (1 <= NAT_BC_CRED <= 18)
 	grupo = df[condition_CST & condition_NAT].groupby([
 		'CNPJ Base', 'Ano do Período de Apuração', 'Mês do Período de Apuração',
-		'IND_ORIG_CRED', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
+		'Tipo de Crédito', 'CST_PIS_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'NAT_BC_CRED',
 	]).sum().reset_index()
 
 	if verbose:
@@ -459,25 +459,6 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 
 	# Delete column from pandas DataFrame
 	del grupo['Valor do Item']
-
-	# Adição da coluna <Tipo de Crédito>
-	# how do I insert a column at a specific column index in pandas?
-	grupo.insert(loc=4, column='Tipo de Crédito', value='01: Alíquota Básica')
-
-	# https://kite.com/python/answers/how-to-change-values-in-a-pandas-dataframe-column-based-on-a-condition-in-python
-	condition2 = (grupo['ALIQ_PIS'] != 1.65) | (grupo['ALIQ_COFINS'] != 7.60)  # | or condition
-	condition6 = grupo['CST_PIS_COFINS'].str.contains(r'^6[0-6]')              # 60 <= CST <= 66
-	condition8 = grupo['IND_ORIG_CRED'].str.contains(r'Importação')
-	condition9 = grupo['NAT_BC_CRED'].str.contains(r'^18')                     # NAT_BC_CRED = 18
-
-	grupo.loc[ condition2, 'Tipo de Crédito'] = '02: Alíquotas Diferenciadas'
-	grupo.loc[ condition6, 'Tipo de Crédito'] = '06: Presumido da Agroindústria'
-	grupo.loc[ condition8, 'Tipo de Crédito'] = '08: Importação'
-	grupo.loc[ condition9, 'Tipo de Crédito'] = '09: Atividade Imobiliária'
-
-	if verbose:
-		print(f'\ngrupo [após adição da coluna <Tipo de Crédito> e remoção da coluna <Valor do Item>]:')
-		print(f'{grupo}\n')
 
 	# https://thispointer.com/pandas-merge-dataframes-on-specific-columns-or-on-index-in-python-part-2/
 	grupo = grupo.merge(grupoRB, on=colunas_info)
@@ -617,10 +598,10 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		CredCof[0]: 'sum', CredCof[1]: 'sum', CredCof[2]: 'sum',
 	}).reset_index()
 
-	natureza = grupo_soma_parcial_cof['Tipo de Crédito'].str.extract(r'^\d{2}:\s*(.*)$')
-	grupo_soma_parcial['NAT_BC_CRED'] = 'Base de Cálculo - ' + natureza + ' (Soma Parcial)'
-	grupo_soma_parcial_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + natureza + ' (PIS/PASEP)'
-	grupo_soma_parcial_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + natureza + ' (COFINS)'
+	descricao_tipo_do_credito = grupo_soma_parcial['Tipo de Crédito'].str.extract(r'^\d{2} - (.*)$')
+	grupo_soma_parcial['NAT_BC_CRED'] = 'Base de Cálculo - ' + descricao_tipo_do_credito + ' (Soma Parcial)'
+	grupo_soma_parcial_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_do_credito + ' (PIS/PASEP)'
+	grupo_soma_parcial_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_do_credito + ' (COFINS)'
 
 
 	colunas_mensais = [

@@ -80,14 +80,14 @@ class SPED_EFD_Info:
 
 	# Imprimir as informações desta coluna, nesta ordem
 	colunas_selecionadas = [
-		'Linhas', 'EFD Tipo', 'Arquivo da SPED EFD', 'Nº da Linha da EFD', 'CNPJ Base', 'CNPJ', 'NOME', 
-		'Mês do Período de Apuração', 'Ano do Período de Apuração', 'Tipo de Operação', 'Tipo de Crédito', 
-		'REG', 'CST_PIS_COFINS', 'NAT_BC_CRED', 'CFOP', 'COD_PART', *registros_de_cadastro_do_participante, 
-		'CNPJ_CPF_PART', 'Data de Emissão', 'Data de Execução', 'COD_ITEM', 
-		*registros_de_identificacao_do_item, 'Chave Eletrônica', 'COD_MOD', 'NUM_DOC', 'NUM_ITEM', 
-		'COD_CTA', *registros_de_plano_de_contas, 'Valor do Item', 'VL_BC_PIS', 'VL_BC_COFINS', 
-		'ALIQ_PIS', 'ALIQ_COFINS', 'VL_PIS', 'VL_COFINS', 'VL_ISS', 'CST_ICMS', 'VL_BC_ICMS', 
-		'ALIQ_ICMS', 'VL_ICMS', 
+		'Linhas', 'EFD Tipo', 'Arquivo da SPED EFD', 'Nº da Linha da EFD', 'CNPJ Base', 'CNPJ', 
+		'NOME', 'Mês do Período de Apuração', 'Ano do Período de Apuração', 'Tipo de Operação',
+		'Tipo de Crédito', 'REG', 'CST_PIS_COFINS', 'NAT_BC_CRED', 'CFOP', 'COD_PART', 
+		*registros_de_cadastro_do_participante, 'CNPJ_CPF_PART', 'Data de Emissão', 'Data de Execução', 
+		'COD_ITEM', *registros_de_identificacao_do_item, 'Chave Eletrônica', 'COD_MOD', 'NUM_DOC', 
+		'NUM_ITEM', 'COD_CTA', *registros_de_plano_de_contas, 'Valor do Item', 
+		'VL_BC_PIS', 'VL_BC_COFINS', 'ALIQ_PIS', 'ALIQ_COFINS', 'VL_PIS', 'VL_COFINS', 
+		'VL_ISS', 'CST_ICMS', 'VL_BC_ICMS', 'ALIQ_ICMS', 'VL_ICMS', 
 		# 'VL_ICMS_RECOLHER', 'VL_ICMS_RECOLHER_OA'
 	]
 	
@@ -392,7 +392,7 @@ class SPED_EFD_Info:
 		
 		return info_de_abertura
 	
-	def determinar_codigo_do_credito(self,dict_info):
+	def obter_tipo_de_credito(self,dict_info):
 		''' 
 		Veja Tabela "4.3.6 - Tabela Código de Tipo de Crédito" e comentários do Campo 02 do Registro M100 do Guia PRÁTICO.
 		Os códigos dos tipos de créditos são definidos a partir das informações de CST e Alíquota constantes nos documentos e operações registrados nos blocos A, C, D e F.
@@ -401,28 +401,26 @@ class SPED_EFD_Info:
 		O código 109 (atividade imobiliária) é obtido diretamente dos registros F205 e F210, bem como os códigos relativos ao estoque de abertura (104, 204 e 304), 
 		os quais são obtidos diretamente do registro F150 (NAT_BC_CRED = 18).
 		'''
-		codigo_do_credito = ''
-		aliq_basica_pis    = 1.6500
-		aliq_basica_cofins = 7.6000
+		tipo_de_credito = ''
+		aliq_basica_pis    = 1.6500 # 4 casas decimais
+		aliq_basica_cofins = 7.6000 # 4 casas decimais
 
-		presumido   = {}
-		seen_pis    = {}
-		seen_cofins = {}
+		percentual = {}
+		aliquotas_de_cred_presumido = {}
 
-		# a alíquota do crédito presumido é uma porcentagem da alíquota básica
-		presumido[1] = 0.60 # Lei 10.925, Art. 8o, § 3o, inciso I.    # pis = 0.9900 ; confins = 4.5600
-		presumido[2] = 0.35 # Lei 10.925, Art. 8o, § 3o, inciso III.  # pis = 0.5775 ; confins = 2.6600
-		presumido[3] = 0.50 # Lei 10.925, Art. 8o, § 3o, inciso IV.   # pis = 0.8250 ; confins = 3.8000
-		presumido[4] = 0.20 # Lei 10.925, Art. 8o, § 3o, inciso V.    # pis = 0.3300 ; confins = 1.5200
-		presumido[5] = 0.10 # Lei 12.599, Art. 5o, § 1o  # pis = 0.1650 ; confins = 0.7600 --> crédito presumido - exportação de café, produtos com ncm 0901.1
-		presumido[6] = 0.80 # Lei 12.599, Art. 6o, § 2o  # pis = 1.3200 ; confins = 6.0800 --> crédito presumido - industrialização do café, aquisição dos produtos com ncm 0901.1 utilizados na elaboração dos produtos com 0901.2 e 2101.1
+		# A alíquota do crédito presumido é uma fração percentual da alíquota básica.
+		percentual[1] = 0.20 # Lei 10.925, Art. 8o, § 3o, inciso V.    # pis = 0.3300 ; confins = 1.5200
+		percentual[2] = 0.35 # Lei 10.925, Art. 8o, § 3o, inciso III.  # pis = 0.5775 ; confins = 2.6600
+		percentual[3] = 0.50 # Lei 10.925, Art. 8o, § 3o, inciso IV.   # pis = 0.8250 ; confins = 3.8000
+		percentual[4] = 0.60 # Lei 10.925, Art. 8o, § 3o, inciso I.    # pis = 0.9900 ; confins = 4.5600
+		percentual[5] = 0.10 # Lei 12.599, Art. 5o, § 1o  # pis = 0.1650 ; confins = 0.7600 --> crédito presumido - exportação de café, produtos com ncm 0901.1
+		percentual[6] = 0.80 # Lei 12.599, Art. 6o, § 2o  # pis = 1.3200 ; confins = 6.0800 --> crédito presumido - industrialização do café, aquisição dos produtos com ncm 0901.1 utilizados na elaboração dos produtos com 0901.2 e 2101.1
 
-		for key in presumido.keys():
-			# As alíquotas de crédito presumido são obtidas por porcentagem aplicada sobre a alíquota básica.
-			alp = f'{aliq_basica_pis    * presumido[key]:.4f}'
-			alc = f'{aliq_basica_cofins * presumido[key]:.4f}'
-			seen_pis   [alp] = 1
-			seen_cofins[alc] = 1
+		for key in percentual.keys():
+			alpis = f'{aliq_basica_pis    * percentual[key]:.4f}' # 4 casas decimais
+			alcof = f'{aliq_basica_cofins * percentual[key]:.4f}' # 4 casas decimais
+			chave = alpis + alcof
+			aliquotas_de_cred_presumido[chave] = 1
 
 		if (set(['ALIQ_PIS', 'ALIQ_COFINS','CST_PIS_COFINS','IND_ORIG_CRED']).issubset(dict_info) and
 			re.search(r'\d', dict_info['ALIQ_PIS']) and 
@@ -436,25 +434,26 @@ class SPED_EFD_Info:
 			aliq_cof = My_Switch.formatar_valores_reais(dict_info['ALIQ_COFINS'])
 
 			if   origem == 0 and 50 <= cst <= 56:
-				codigo_do_credito = '01 - ' + EFD_Tabelas.tabela_tipo_de_credito['01']     # 'Alíquota Básica'
+				tipo_de_credito = '01 - ' + EFD_Tabelas.tabela_tipo_de_credito['01']     # 'Alíquota Básica'
 				if aliq_pis != aliq_basica_pis or aliq_cof != aliq_basica_cofins:
-					codigo_do_credito = '02 - ' + EFD_Tabelas.tabela_tipo_de_credito['02'] # 'Alíquotas Diferenciadas'	
-				#print(f'{aliq_pis = } ; {aliq_basica_pis = } ; {aliq_cof = } ; {aliq_basica_cofins = } ; {codigo_do_credito = }\n')
+					tipo_de_credito = '02 - ' + EFD_Tabelas.tabela_tipo_de_credito['02'] # 'Alíquotas Diferenciadas'	
+				#print(f'{aliq_pis = } ; {aliq_basica_pis = } ; {aliq_cof = } ; {aliq_basica_cofins = } ; {tipo_de_credito = }\n')
 			elif origem == 0 and 60 <= cst <= 66:
-				aliq_pis = f'{aliq_pis:.4f}'
-				aliq_cof = f'{aliq_cof:.4f}'
-				codigo_do_credito = '07 - ' + EFD_Tabelas.tabela_tipo_de_credito['07']     # 'Outros Créditos Presumidos'
-				if aliq_pis in seen_pis and aliq_cof in seen_cofins:
-					codigo_do_credito = '06 - ' + EFD_Tabelas.tabela_tipo_de_credito['06'] # 'Presumido da Agroindústria'
+				aliq_pis = f'{aliq_pis:.4f}' # 4 casas decimais
+				aliq_cof = f'{aliq_cof:.4f}' # 4 casas decimais
+				chave = aliq_pis + aliq_cof
+				tipo_de_credito = '07 - ' + EFD_Tabelas.tabela_tipo_de_credito['07']     # 'Outros Créditos Presumidos'
+				if chave in aliquotas_de_cred_presumido:
+					tipo_de_credito = '06 - ' + EFD_Tabelas.tabela_tipo_de_credito['06'] # 'Presumido da Agroindústria'
 			elif origem == 1 and 50 <= cst <= 66:
-				codigo_do_credito = '08 - ' + EFD_Tabelas.tabela_tipo_de_credito['08']     # 'Importação'
+				tipo_de_credito = '08 - ' + EFD_Tabelas.tabela_tipo_de_credito['08']     # 'Importação'
 		
 		if 'NAT_BC_CRED' in dict_info and re.search(r'^\d+$', dict_info['NAT_BC_CRED']):
 			natureza = int(dict_info['NAT_BC_CRED'])
 			if natureza == 18:
-				codigo_do_credito = '09 - ' + EFD_Tabelas.tabela_tipo_de_credito['09']     # 'Atividade Imobiliária'
+				tipo_de_credito = '09 - ' + EFD_Tabelas.tabela_tipo_de_credito['09']     # 'Atividade Imobiliária'
 
-		return codigo_do_credito
+		return tipo_de_credito
 	
 	def adicionar_informacoes(self,dict_info):
 		"""
@@ -505,7 +504,8 @@ class SPED_EFD_Info:
 			indicador_de_origem = 1
 		dict_info['IND_ORIG_CRED'] = indicador_de_origem
 
-		dict_info['Tipo de Crédito'] = self.determinar_codigo_do_credito(dict_info)
+		dict_info['Tipo de Crédito'] = self.obter_tipo_de_credito(dict_info)
+		del dict_info['IND_ORIG_CRED']
 
 		# Adicionar informação de cadastro do participante obtido do Registro 0150
 		# info_do_participante[codigo_do_participante][campo] = descricao

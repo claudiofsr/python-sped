@@ -2,7 +2,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='19 de Abril de 2020 (início: 10 de Janeiro de 2020)'
+date='20 de Abril de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -405,6 +405,25 @@ class SPED_EFD_Info:
 		aliq_basica_pis    = 1.6500
 		aliq_basica_cofins = 7.6000
 
+		presumido   = {}
+		seen_pis    = {}
+		seen_cofins = {}
+
+		# a alíquota do crédito presumido é uma porcentagem da alíquota básica
+		presumido[1] = 0.60 # Lei 10.925, Art. 8o, § 3o, inciso I.    # pis = 0.9900 ; confins = 4.5600
+		presumido[2] = 0.35 # Lei 10.925, Art. 8o, § 3o, inciso III.  # pis = 0.5775 ; confins = 2.6600
+		presumido[3] = 0.50 # Lei 10.925, Art. 8o, § 3o, inciso IV.   # pis = 0.8250 ; confins = 3.8000
+		presumido[4] = 0.20 # Lei 10.925, Art. 8o, § 3o, inciso V.    # pis = 0.3300 ; confins = 1.5200
+		presumido[5] = 0.10 # Lei 12.599, Art. 5o, § 1o  # pis = 0.1650 ; confins = 0.7600 --> crédito presumido - exportação de café, produtos com ncm 0901.1
+		presumido[6] = 0.80 # Lei 12.599, Art. 6o, § 2o  # pis = 1.3200 ; confins = 6.0800 --> crédito presumido - industrialização do café, aquisição dos produtos com ncm 0901.1 utilizados na elaboração dos produtos com 0901.2 e 2101.1
+
+		for key in presumido.keys():
+			# As alíquotas de crédito presumido são obtidas por porcentagem aplicada sobre a alíquota básica.
+			alp = f'{aliq_basica_pis    * presumido[key]:.4f}'
+			alc = f'{aliq_basica_cofins * presumido[key]:.4f}'
+			seen_pis   [alp] = 1
+			seen_cofins[alc] = 1
+
 		if (set(['ALIQ_PIS', 'ALIQ_COFINS','CST_PIS_COFINS','IND_ORIG_CRED']).issubset(dict_info) and
 			re.search(r'\d', dict_info['ALIQ_PIS']) and 
 			re.search(r'\d', dict_info['ALIQ_COFINS']) and
@@ -417,18 +436,23 @@ class SPED_EFD_Info:
 			aliq_cof = My_Switch.formatar_valores_reais(dict_info['ALIQ_COFINS'])
 
 			if   origem == 0 and 50 <= cst <= 56:
-				codigo_do_credito = '01 - ' + EFD_Tabelas.tabela_tipo_de_credito['01'] # 'Alíquota Básica'
+				codigo_do_credito = '01 - ' + EFD_Tabelas.tabela_tipo_de_credito['01']     # 'Alíquota Básica'
 				if aliq_pis != aliq_basica_pis or aliq_cof != aliq_basica_cofins:
-					codigo_do_credito = '02 - ' + EFD_Tabelas.tabela_tipo_de_credito['02'] # 'Alíquotas Diferenciadas'
+					codigo_do_credito = '02 - ' + EFD_Tabelas.tabela_tipo_de_credito['02'] # 'Alíquotas Diferenciadas'	
+				#print(f'{aliq_pis = } ; {aliq_basica_pis = } ; {aliq_cof = } ; {aliq_basica_cofins = } ; {codigo_do_credito = }\n')
 			elif origem == 0 and 60 <= cst <= 66:
-				codigo_do_credito = '06 - ' + EFD_Tabelas.tabela_tipo_de_credito['06'] # 'Presumido da Agroindústria'
+				aliq_pis = f'{aliq_pis:.4f}'
+				aliq_cof = f'{aliq_cof:.4f}'
+				codigo_do_credito = '07 - ' + EFD_Tabelas.tabela_tipo_de_credito['07']     # 'Outros Créditos Presumidos'
+				if aliq_pis in seen_pis and aliq_cof in seen_cofins:
+					codigo_do_credito = '06 - ' + EFD_Tabelas.tabela_tipo_de_credito['06'] # 'Presumido da Agroindústria'
 			elif origem == 1 and 50 <= cst <= 66:
-				codigo_do_credito = '08 - ' + EFD_Tabelas.tabela_tipo_de_credito['08'] # 'Importação'
+				codigo_do_credito = '08 - ' + EFD_Tabelas.tabela_tipo_de_credito['08']     # 'Importação'
 		
 		if 'NAT_BC_CRED' in dict_info and re.search(r'^\d+$', dict_info['NAT_BC_CRED']):
 			natureza = int(dict_info['NAT_BC_CRED'])
 			if natureza == 18:
-				codigo_do_credito = '09 - ' + EFD_Tabelas.tabela_tipo_de_credito['09'] # 'Atividade Imobiliária'
+				codigo_do_credito = '09 - ' + EFD_Tabelas.tabela_tipo_de_credito['09']     # 'Atividade Imobiliária'
 
 		return codigo_do_credito
 	

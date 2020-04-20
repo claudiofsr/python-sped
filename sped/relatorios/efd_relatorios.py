@@ -3,7 +3,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='19 de Abril de 2020 (início: 10 de Janeiro de 2020)'
+date='20 de Abril de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -598,10 +598,10 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 		CredCof[0]: 'sum', CredCof[1]: 'sum', CredCof[2]: 'sum',
 	}).reset_index()
 
-	descricao_tipo_do_credito = grupo_soma_parcial['Tipo de Crédito'].str.extract(r'^\d{2} - (.*)$')
-	grupo_soma_parcial['NAT_BC_CRED'] = 'Base de Cálculo - ' + descricao_tipo_do_credito + ' (Soma Parcial)'
-	grupo_soma_parcial_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_do_credito + ' (PIS/PASEP)'
-	grupo_soma_parcial_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_do_credito + ' (COFINS)'
+	descricao_tipo_de_credito = grupo_soma_parcial['Tipo de Crédito'].str.extract(r'^\d{2} - (.*)$')
+	grupo_soma_parcial['NAT_BC_CRED'] = 'Base de Cálculo - ' + descricao_tipo_de_credito + ' (Soma Parcial)'
+	grupo_soma_parcial_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_de_credito + ' (PIS/PASEP)'
+	grupo_soma_parcial_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - ' + descricao_tipo_de_credito + ' (COFINS)'
 
 
 	colunas_mensais = [
@@ -625,8 +625,8 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	}).reset_index()
 
 	grupo_mensal['NAT_BC_CRED'] = 'Base de Cálculo (Soma Mensal)'
-	grupo_mensal_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado Mensal (PIS/PASEP)'
-	grupo_mensal_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado Mensal (COFINS)'
+	grupo_mensal_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Mensal (PIS/PASEP)'
+	grupo_mensal_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Mensal (COFINS)'
 
 
 	colunas_trim = [
@@ -649,8 +649,8 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	}).reset_index()
 
 	grupo_trimestral['NAT_BC_CRED'] = 'Base de Cálculo (Soma Trimestral)'
-	grupo_trimestral_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado Trimestral (PIS/PASEP)'
-	grupo_trimestral_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado Trimestral (COFINS)'
+	grupo_trimestral_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Trimestral (PIS/PASEP)'
+	grupo_trimestral_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Trimestral (COFINS)'
 
 
 	grupo_total = grupo.groupby(['CNPJ Base']).agg({
@@ -671,8 +671,8 @@ def consolidacao_das_operacoes_por_natureza(efd_info_mensal, efd_info_total):
 	}).reset_index()
 
 	grupo_total['NAT_BC_CRED'] = 'Base de Cálculo (Soma Total)'
-	grupo_total_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado Total (PIS/PASEP)'
-	grupo_total_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado Total (COFINS)'
+	grupo_total_pis['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Total (PIS/PASEP)'
+	grupo_total_cof['NAT_BC_CRED'] = 'Valor do Crédito Apurado - Total (COFINS)'
 
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.concat.html

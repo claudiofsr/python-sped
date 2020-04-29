@@ -2,7 +2,7 @@
 
 python_sped_relatorios_author='Claudio Fernandes de Souza Rodrigues (claudiofsr@yahoo.com)'
 python_sped_author='Sergio Garcia (sergio@ginx.com.br)'
-date='20 de Abril de 2020 (início: 10 de Janeiro de 2020)'
+date='29 de Abril de 2020 (início: 10 de Janeiro de 2020)'
 download_url='https://github.com/claudiofsr/python-sped'
 license='MIT'
 
@@ -419,7 +419,7 @@ class SPED_EFD_Info:
 		for key in percentual.keys():
 			alpis = f'{aliq_basica_pis    * percentual[key]:.4f}' # 4 casas decimais
 			alcof = f'{aliq_basica_cofins * percentual[key]:.4f}' # 4 casas decimais
-			chave = alpis + alcof
+			chave = alpis + alcof  # exemplo de chave = '0.99004.5600'
 			aliquotas_de_cred_presumido[chave] = 1
 
 		if (set(['ALIQ_PIS', 'ALIQ_COFINS','CST_PIS_COFINS','IND_ORIG_CRED']).issubset(dict_info) and
@@ -451,7 +451,7 @@ class SPED_EFD_Info:
 		if 'NAT_BC_CRED' in dict_info and re.search(r'^\d+$', dict_info['NAT_BC_CRED']):
 			natureza = int(dict_info['NAT_BC_CRED'])
 			if natureza == 18:
-				tipo_de_credito = '09 - ' + EFD_Tabelas.tabela_tipo_de_credito['09']     # 'Atividade Imobiliária'
+				tipo_de_credito = '04 - ' + EFD_Tabelas.tabela_tipo_de_credito['09']     # 'Estoque de Abertura'
 
 		return tipo_de_credito
 	
